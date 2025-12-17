@@ -208,6 +208,39 @@
             color: rgba(255, 255, 255, .92);
         }
 
+        .task-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .task-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.55rem;
+            border-radius: 999px;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .task-overdue {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        .task-today {
+            background-color: #ffc107;
+            color: #111;
+        }
+
+        .task-upcoming {
+            background-color: #28a745;
+            color: #fff;
+        }
+
         /* Alerts -> glassy */
         .alert {
             border-radius: var(--radius-sm);
@@ -292,6 +325,32 @@
             background: rgba(255, 255, 255, .04) !important;
             border-bottom: 1px solid rgba(255, 255, 255, .10);
             color: rgba(255, 255, 255, .92);
+        }
+
+        /* --- Fix: Form inputs / dropdowns readable on modern theme --- */
+        .form-control,
+        .form-select {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            /* dunkler Text */
+            border: 1px solid rgba(17, 24, 39, 0.15) !important;
+        }
+
+        .form-control::placeholder {
+            color: rgba(17, 24, 39, 0.5) !important;
+        }
+
+        /* Dropdown options (Windows/Chrome picky) */
+        select option {
+            color: #111827;
+            background-color: #ffffff;
+        }
+
+        /* Focus state nicer */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: rgba(34, 197, 94, 0.55) !important;
+            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15) !important;
         }
     </style>
 </head>
@@ -698,7 +757,7 @@
                   <h5 class="mb-1">${task.plant}</h5>
                   <div class="muted small mb-2">${task.species}</div>
                   <div class="mb-2"><span class="chip">📍 ${task.location}</span></div>
-                  <div class="mb-2">${taskBadges}</div>
+                  <div class="task-badges mb-2">${taskBadges}</div>
                   <div class="alert ${task.next_task_days < 0 ? 'alert-danger' : task.next_task_days === 0 ? 'alert-warning' : 'alert-info'} py-2 mb-0">
                     <strong>Nächste Aufgabe:</strong> ${nextTaskIcon} ${nextTaskName}
                   </div>
