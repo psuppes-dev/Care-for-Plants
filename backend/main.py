@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from pydantic import BaseModel
+from auth import router as auth_router, require_login
 
 
 # Eigene Module
@@ -14,6 +15,7 @@ from services import trefle_service
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Care For Plants API")
+app.include_router(auth_router, prefix="/auth")
 
 # CORS Middleware
 app.add_middleware(

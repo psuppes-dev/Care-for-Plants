@@ -297,6 +297,25 @@
 </head>
 
 <body>
+    <!-- Login Overlay -->
+    <div id="loginOverlay"
+        style="position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div class="card p-4" style="width:320px">
+            <h4 class="mb-3 text-center">Login</h4>
+
+            <input id="loginUser" class="form-control mb-2" placeholder="Username">
+            <input id="loginPass" type="password" class="form-control mb-3" placeholder="Password">
+
+            <button class="btn btn-success w-100" onclick="login()">Login</button>
+
+            <div class="text-muted small mt-3 text-center">
+                Test-Accounts:<br>
+                student / student123<br>
+                tutor / tutor123
+            </div>
+        </div>
+    </div>
+
     <!-- Topbar -->
     <div class="topbar py-3">
         <div class="container app-shell d-flex align-items-center justify-content-between">
@@ -1401,6 +1420,39 @@
             moveModal.hide();
             await loadTasks();
         }
+
+        // Login
+        async function login() {
+            const form = new FormData();
+            form.append("username", document.getElementById("loginUser").value);
+            form.append("password", document.getElementById("loginPass").value);
+
+            const res = await fetch("/auth/login", {
+                method: "POST",
+                body: form
+            });
+
+            if (res.ok) {
+                document.getElementById("loginOverlay").style.display = "none";
+                loadTasks(); // App starten
+            } else {
+                alert("Login fehlgeschlagen");
+            }
+        }
+
+        // Check beim Start
+        async function checkAuth() {
+            const res = await fetch("/wishlist/");
+            if (res.status === 401) {
+                document.getElementById("loginOverlay").style.display = "flex";
+            } else {
+                document.getElementById("loginOverlay").style.display = "none";
+                loadTasks();
+            }
+        }
+
+        checkAuth();
+
     </script>
 </body>
 
