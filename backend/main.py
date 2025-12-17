@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from pydantic import BaseModel
 from auth import router as auth_router, require_login
+from passlib.context import CryptContext
+from backend.database import SessionLocal  
+from backend.models import User
 
 
 # Eigene Module
@@ -16,6 +19,27 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Care For Plants API")
 app.include_router(auth_router, prefix="/auth")
+
+# Testuser seeden
+pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def seed_test_users():
+    db = SessionLocal()
+    try:
+        def ensure(username: str, pw: str):
+            u = db.query(User).filter(User.username == username).first()
+            if not u:
+                db.add(User(username=username, password_hash=pwd_ctx.hash(pw)))
+                db.commit()
+
+        ensure("student", "student123")
+        ensure("tutor", "tutor123")
+    finally:
+        db.close()
+
+@app.on_event("startup")
+def on_startup():
+    seed_test_users()
 
 # CORS Middleware
 app.add_middleware(
@@ -77,38 +101,50 @@ def search_plants(query: str):
     return trefle_service.search_plants(query)
 
 @app.post("/locations/")
-def create_location(loc: LocationCreate, db: Session = Depends(get_db)):
-    """Erstellt einen Standort mit detaillierten Umweltbedingungen"""
+def create_location(payload: LocationCreate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
+    """Erstellt einen Standort mit detaillierten Umweltbedingungen (pro User)"""
+
     db_loc = models.Location(
-        name=loc.name,
-        light_level=loc.light_level,
-        humidity_level=loc.humidity_level,
-        temperature_avg=loc.temperature_avg,
-        available_space_cm=loc.available_space_cm,
-        has_pets_or_children=loc.has_pets_or_children
-    )
+        user_id=user_id,                     
+        name=payload.name,
+        light_level=payload.light_level,
+        humidity_level=payload.humidity_level,
+        temperature_avg=payload.temperature_avg,
+        available_space_cm=payload.available_space_cm,
+        has_pets_or_children=payload.has_pets_or_children
+        )
     db.add(db_loc)
     db.commit()
     db.refresh(db_loc)
     return db_loc
 
 @app.get("/locations/")
-def list_locations(db: Session = Depends(get_db)):
-    return db.query(models.Location).all()
+def get_locations(user_id: int = Depends(require_login),db: Session = Depends(get_db)):
+    return db.query(models.Location).filter(models.Location.user_id == user_id).all()
 
 @app.post("/my-plants/")
-def add_plant_to_location(plant_in: MyPlantCreate, db: Session = Depends(get_db)):
-    # 1. Prüfen ob lokal vorhanden
-    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == plant_in.trefle_id).first()
-    
+def create_my_plant(payload: MyPlantCreate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
+    # 0) Safety: Standort muss dem User gehören
+    location = db.query(models.Location).filter(
+        models.Location.id == payload.location_id,
+        models.Location.user_id == user_id
+    ).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Standort nicht gefunden oder gehört nicht zum User")
+
+    # 1) PlantInfo (global/shared) prüfen ob lokal vorhanden
+    db_info = db.query(models.PlantInfo).filter(
+        models.PlantInfo.trefle_id == payload.trefle_id
+    ).first()
+
     if not db_info:
-        # 2. Importieren von Trefle
-        details = trefle_service.get_plant_details(plant_in.trefle_id)
+        # 2) Importieren von Trefle
+        details = trefle_service.get_plant_details(payload.trefle_id)
         if not details:
             raise HTTPException(status_code=404, detail="Pflanze bei Trefle nicht gefunden")
-            
+
         db_info = models.PlantInfo(
-            trefle_id=plant_in.trefle_id,
+            trefle_id=payload.trefle_id,
             scientific_name=details["scientific_name"],
             common_name=details["common_name"],
             image_url=details["image_url"],
@@ -128,10 +164,11 @@ def add_plant_to_location(plant_in: MyPlantCreate, db: Session = Depends(get_db)
         db.commit()
         db.refresh(db_info)
 
-    # 3. User-Pflanze anlegen
+    # 3) User-Pflanze anlegen (user_id setzen!)
     new_plant = models.MyPlant(
-        nickname=plant_in.nickname,
-        location_id=plant_in.location_id,
+        user_id=user_id,                   # ⭐ WICHTIG
+        nickname=payload.nickname,
+        location_id=payload.location_id,
         plant_info_id=db_info.id,
         last_watered=date.today(),
         last_fertilized=date.today(),
@@ -140,13 +177,16 @@ def add_plant_to_location(plant_in: MyPlantCreate, db: Session = Depends(get_db)
         last_propagated=date.today(),
         date_acquired=date.today()
     )
+
     db.add(new_plant)
     db.commit()
-    return {"status": "created", "plant": new_plant.nickname}
+    db.refresh(new_plant)
+
+    return {"status": "created", "plant": new_plant.nickname, "id": new_plant.id}
 
 
 @app.post("/wishlist/")
-def add_to_wishlist(item: WishlistCreate, db: Session = Depends(get_db)):
+def add_to_wishlist(payload: WishlistCreate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
     """Fügt eine Pflanze zur Wunschliste hinzu"""
     # Prüfen ob schon in Wunschliste
     exists = db.query(models.Wishlist).filter(models.Wishlist.trefle_id == item.trefle_id).first()
@@ -183,21 +223,20 @@ def add_to_wishlist(item: WishlistCreate, db: Session = Depends(get_db)):
         db.refresh(db_info)
     
     # Zur Wunschliste hinzufügen
-    wishlist_item = models.Wishlist(
-        trefle_id=item.trefle_id,
-        plant_info_id=db_info.id,
-        added_date=date.today()
-    )
-    db.add(wishlist_item)
+    item = models.Wishlist(
+    user_id=user_id,
+    trefle_id=payload.trefle_id,
+    plant_info=db_info.id)
+    db.add(item)
     db.commit()
     
     return {"status": "added", "plant": db_info.common_name}
 
 @app.get("/wishlist/")
-def get_wishlist(db: Session = Depends(get_db)):
+def get_wishlist(user_id: int = Depends(require_login),db: Session = Depends(get_db)):
     """Gibt die Wunschliste mit ERWEITERTER Standort-Kompatibilität zurück"""
-    wishlist = db.query(models.Wishlist).all()
-    locations = db.query(models.Location).all()
+    wishlist = db.query(models.Wishlist).filter(models.Wishlist.user_id == user_id).all()
+    locations = db.query(models.Location).filter(models.Location.user_id == user_id).all()
     
     result = []
     for item in wishlist:
@@ -250,27 +289,38 @@ def get_wishlist(db: Session = Depends(get_db)):
     
     return result
 
-@app.delete("/wishlist/{item_id}")
-def remove_from_wishlist(item_id: int, db: Session = Depends(get_db)):
-    """Entfernt eine Pflanze aus der Wunschliste"""
-    item = db.query(models.Wishlist).filter(models.Wishlist.id == item_id).first()
+@app.delete("/wishlist/{wishlist_id}")
+def delete_wishlist_item(
+    wishlist_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    item = db.query(models.Wishlist).filter(
+        models.Wishlist.id == wishlist_id,
+        models.Wishlist.user_id == user_id
+    ).first()
     if not item:
-        raise HTTPException(status_code=404, detail="Nicht gefunden")
-    
+        raise HTTPException(status_code=404, detail="Not found")
+
     db.delete(item)
     db.commit()
-    return {"status": "deleted"}
+    return {"ok": True}
+
 
 @app.put("/wishlist/{item_id}/plant-info")
-def update_plant_info(item_id: int, updates: PlantInfoUpdate, db: Session = Depends(get_db)):
-    """Eigenschaften einer Pflanze in der Wunschliste manuell bearbeiten"""
-    wishlist_item = db.query(models.Wishlist).filter(models.Wishlist.id == item_id).first()
+def update_plant_info(item_id: int,updates: PlantInfoUpdate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
+    """Eigenschaften einer Pflanze in der Wunschliste manuell bearbeiten (pro User)"""
+
+    wishlist_item = db.query(models.Wishlist).filter(
+        models.Wishlist.id == item_id,
+        models.Wishlist.user_id == user_id
+    ).first()
+
     if not wishlist_item:
         raise HTTPException(status_code=404, detail="Nicht gefunden")
-    
+
     plant_info = wishlist_item.plant_info
-    
-    # Nur gesetzte Werte aktualisieren
+
     if updates.water_frequency_days is not None:
         plant_info.water_frequency_days = updates.water_frequency_days
     if updates.fertilize_frequency_days is not None:
@@ -289,61 +339,69 @@ def update_plant_info(item_id: int, updates: PlantInfoUpdate, db: Session = Depe
         plant_info.soil_type = updates.soil_type
     if updates.is_toxic is not None:
         plant_info.is_toxic = updates.is_toxic
-    
+
     db.commit()
     return {"status": "updated", "plant": plant_info.common_name}
 
 @app.get("/locations/{location_id}/details")
-def get_location_details(location_id: int, db: Session = Depends(get_db)):
-    """Zeigt alle Pflanzen an einem Standort + passende Wunschlistenpflanzen"""
-    location = db.query(models.Location).filter(models.Location.id == location_id).first()
+def get_location_details(
+    location_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Zeigt alle Pflanzen an einem Standort + passende Wunschlistenpflanzen (pro User)"""
+
+    # Standort nur laden, wenn er dem User gehört
+    location = db.query(models.Location).filter(
+        models.Location.id == location_id,
+        models.Location.user_id == user_id
+    ).first()
+
     if not location:
         raise HTTPException(status_code=404, detail="Standort nicht gefunden")
-    
-    # Tatsächliche Pflanzen am Standort
+
+    # Tatsächliche Pflanzen am Standort (nur dieses Users, extra-safe)
     actual_plants = []
     for plant in location.my_plants:
+        # Falls Relationship nicht gefiltert ist, sichern wir per user_id ab
+        if getattr(plant, "user_id", user_id) != user_id:
+            continue
+
         actual_plants.append({
             "id": plant.id,
             "nickname": plant.nickname,
             "species": plant.plant_info.common_name or plant.plant_info.scientific_name,
             "image": plant.plant_info.image_url
         })
-    
-    # Wunschlisten-Pflanzen die passen würden
-    wishlist = db.query(models.Wishlist).all()
+
+    # Wunschlisten-Pflanzen nur vom User
+    wishlist = db.query(models.Wishlist).filter(models.Wishlist.user_id == user_id).all()
     compatible_wishlist = []
-    
+
     for item in wishlist:
         plant = item.plant_info
         is_compatible = True
-        reasons = []
-        
+
         # Licht-Check
         if abs(plant.sunlight_requirement - location.light_level) > 2:
             is_compatible = False
-            reasons.append(f"Licht: braucht {plant.sunlight_requirement}, Standort hat {location.light_level}")
-        
+
         # Luftfeuchtigkeit-Check
         if abs(plant.humidity_requirement - location.humidity_level) > 2:
             is_compatible = False
-            reasons.append(f"Feuchtigkeit: braucht {plant.humidity_requirement}, Standort hat {location.humidity_level}")
-        
+
         # Temperatur-Check
         if location.temperature_avg < plant.temperature_min or location.temperature_avg > plant.temperature_max:
             is_compatible = False
-            reasons.append(f"Temperatur: braucht {plant.temperature_min}-{plant.temperature_max}°C, Standort hat {location.temperature_avg}°C")
-        
+
         # Platz-Check
         if plant.max_height_cm > location.available_space_cm:
             is_compatible = False
-            reasons.append(f"Platz: wird {plant.max_height_cm}cm hoch, nur {location.available_space_cm}cm verfügbar")
-        
+
         # Giftigkeit-Check
         if plant.is_toxic and location.has_pets_or_children:
             is_compatible = False
-            reasons.append("⚠️ GIFTIG für Haustiere/Kinder!")
-        
+
         if is_compatible:
             compatible_wishlist.append({
                 "wishlist_id": item.id,
@@ -351,7 +409,7 @@ def get_location_details(location_id: int, db: Session = Depends(get_db)):
                 "scientific_name": plant.scientific_name,
                 "image": plant.image_url
             })
-    
+
     return {
         "location": {
             "id": location.id,
@@ -367,9 +425,9 @@ def get_location_details(location_id: int, db: Session = Depends(get_db)):
     }
 
 @app.get("/dashboard/tasks")
-def get_tasks(db: Session = Depends(get_db)):
+def dashboard_tasks(user_id: int = Depends(require_login),db: Session = Depends(get_db)):
     tasks = []
-    my_plants = db.query(models.MyPlant).all()
+    my_plants = db.query(models.MyPlant).filter(models.MyPlant.user_id == user_id).all()
     
     for plant in my_plants:
         # Gießen
@@ -436,64 +494,78 @@ def get_tasks(db: Session = Depends(get_db)):
     
     return sorted(tasks, key=lambda x: x["next_task_days"])
 
-
+#Helper
+def get_user_plant(db: Session, plant_id: int, user_id: int):
+    plant = db.query(models.MyPlant).filter(
+        models.MyPlant.id == plant_id,
+        models.MyPlant.user_id == user_id
+    ).first()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
+    return plant
 
 @app.post("/my-plants/{plant_id}/water")
-def water_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Markiert eine Pflanze als gegossen"""
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
-    
-    if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
-    
+def water_plant(
+    plant_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Markiert eine Pflanze als gegossen (pro User)"""
+    plant = get_user_plant(db, plant_id, user_id)
     plant.last_watered = date.today()
     db.commit()
-    
     return {"status": "success", "plant": plant.nickname, "watered_on": str(date.today())}
 
+
 @app.post("/my-plants/{plant_id}/fertilize")
-def fertilize_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Markiert eine Pflanze als gedüngt"""
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
-    if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
-    
+def fertilize_plant(
+    plant_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Markiert eine Pflanze als gedüngt (pro User)"""
+    plant = get_user_plant(db, plant_id, user_id)
     plant.last_fertilized = date.today()
     db.commit()
     return {"status": "success", "plant": plant.nickname, "fertilized_on": str(date.today())}
 
+
 @app.post("/my-plants/{plant_id}/repot")
-def repot_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Markiert eine Pflanze als umgetopft"""
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
-    if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
-    
+def repot_plant(
+    plant_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Markiert eine Pflanze als umgetopft (pro User)"""
+    plant = get_user_plant(db, plant_id, user_id)
     plant.last_repotted = date.today()
     db.commit()
     return {"status": "success", "plant": plant.nickname, "repotted_on": str(date.today())}
 
+
 @app.post("/my-plants/{plant_id}/prune")
-def prune_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Markiert eine Pflanze als geschnitten"""
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
-    if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
-    
+def prune_plant(
+    plant_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Markiert eine Pflanze als geschnitten (pro User)"""
+    plant = get_user_plant(db, plant_id, user_id)
     plant.last_pruned = date.today()
     db.commit()
     return {"status": "success", "plant": plant.nickname, "pruned_on": str(date.today())}
 
-@app.post("/my-plants/{plant_id}/propagate")
-def propagate_plant(plant_id: int, db: Session = Depends(get_db)):
-    """Markiert eine Pflanze als vermehrt"""
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
-    if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
 
+@app.post("/my-plants/{plant_id}/propagate")
+def propagate_plant(
+    plant_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Markiert eine Pflanze als vermehrt (pro User)"""
+    plant = get_user_plant(db, plant_id, user_id)
     plant.last_propagated = date.today()
     db.commit()
-
     return {"status": "success", "plant": plant.nickname, "propagated_on": str(date.today())}
 
 from datetime import timedelta
@@ -528,15 +600,18 @@ def simulate_single_plant(plant_id: int, days: int, db: Session = Depends(get_db
     }
     
 @app.delete("/my-plants/{plant_id}")
-def delete_my_plant(plant_id: int, db: Session = Depends(get_db)):
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
+def delete_my_plant(plant_id: int,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
+    plant = db.query(models.MyPlant).filter(
+        models.MyPlant.id == plant_id,
+        models.MyPlant.user_id == user_id
+    ).first()
+
     if not plant:
         raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
 
     db.delete(plant)
     db.commit()
     return {"status": "ok", "deleted_id": plant_id}
-
 
 
 class MovePlantRequest(BaseModel):

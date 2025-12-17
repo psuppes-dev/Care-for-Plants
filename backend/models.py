@@ -1,7 +1,8 @@
 # backend/models.py
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, Date, Text, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from database import Base
+from sqlalchemy import ForeignKey
 
 # 1. Katalog: Hier speichern wir die Pflanzen - KOMPLETT ERWEITERT!
 class PlantInfo(Base):
@@ -36,7 +37,8 @@ class PlantInfo(Base):
 class Location(Base):
     __tablename__ = "locations"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String)
     
     # Standorteigenschaften
@@ -52,7 +54,8 @@ class Location(Base):
 class MyPlant(Base):
     __tablename__ = "my_plants"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     nickname = Column(String)
     date_acquired = Column(Date)
     
@@ -74,9 +77,20 @@ class MyPlant(Base):
 class Wishlist(Base):
     __tablename__ = "wishlist"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     trefle_id = Column(Integer, unique=True)
     plant_info_id = Column(Integer, ForeignKey("plant_infos.id"))
     added_date = Column(Date)
     
     plant_info = relationship("PlantInfo")
+    
+# 5. Erweiterung
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(Text, unique=True, nullable=False)
+    password_hash = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
