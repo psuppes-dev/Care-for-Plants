@@ -1429,7 +1429,8 @@
 
             const res = await fetch("/auth/login", {
                 method: "POST",
-                body: form
+                body: form,
+                credentials: "include"
             });
 
             if (res.ok) {
@@ -1442,16 +1443,14 @@
 
         // Check beim Start
         async function checkAuth() {
-            const res = await fetch("/wishlist/");
+            const res = await fetch("/auth/me", { credentials: "include" });
             if (res.status === 401) {
                 document.getElementById("loginOverlay").style.display = "flex";
-            } else {
-                document.getElementById("loginOverlay").style.display = "none";
-                loadTasks();
+                return;
             }
+            document.getElementById("loginOverlay").style.display = "none";
+            loadTasks();
         }
-
-        checkAuth();
 
     </script>
 </body>

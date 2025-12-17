@@ -42,3 +42,10 @@ def require_login(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
+
+@router.get("/me")
+def me(request: Request):
+    user = request.cookies.get(SESSION_COOKIE)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"username": user}
