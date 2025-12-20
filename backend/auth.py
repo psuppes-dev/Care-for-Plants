@@ -2,8 +2,8 @@ from fastapi import APIRouter, Request, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
 
-from .database import SessionLocal  # falls bei dir anders heißt: anpassen
-from .models import User            # musst du gleich anlegen
+from database import SessionLocal  
+from models import User            
 
 router = APIRouter()
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
