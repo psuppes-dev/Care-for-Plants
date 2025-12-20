@@ -6,8 +6,8 @@ from datetime import date, timedelta
 from pydantic import BaseModel
 from auth import router as auth_router, require_login
 from passlib.context import CryptContext
-from backend.database import SessionLocal  
-from backend.models import User
+from database import SessionLocal  
+from models import User
 
 
 # Eigene Module
