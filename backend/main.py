@@ -186,51 +186,61 @@ def create_my_plant(payload: MyPlantCreate,user_id: int = Depends(require_login)
 
 
 @app.post("/wishlist/")
-def add_to_wishlist(payload: WishlistCreate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
-    """Fügt eine Pflanze zur Wunschliste hinzu"""
-    # Prüfen ob schon in Wunschliste
-    exists = db.query(models.Wishlist).filter(models.Wishlist.trefle_id == item.trefle_id).first()
+def add_to_wishlist(
+    payload: WishlistCreate,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    # 1) schon vorhanden?
+    exists = (
+        db.query(models.Wishlist)
+        .filter(
+            models.Wishlist.user_id == user_id,
+            models.Wishlist.trefle_id == payload.trefle_id
+        )
+        .first()
+    )
     if exists:
-        raise HTTPException(status_code=400, detail="Pflanze bereits in Wunschliste")
-    
-    # PlantInfo holen oder erstellen
-    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == item.trefle_id).first()
-    
+        return {"status": "exists", "id": exists.id}
+
+    # 2) plant_info holen/erstellen (dein bisheriger Code bleibt)
+    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == payload.trefle_id).first()
     if not db_info:
-        details = trefle_service.get_plant_details(item.trefle_id)
+        details = trefle_service.get_plant_details(payload.trefle_id)
         if not details:
             raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
-            
         db_info = models.PlantInfo(
-            trefle_id=item.trefle_id,
-    scientific_name=details["scientific_name"],
-    common_name=details["common_name"],
-    image_url=details["image_url"],
-    water_frequency_days=details["water_frequency_days"],
-    fertilize_frequency_days=details["fertilize_frequency_days"],
-    repot_frequency_days=details["repot_frequency_days"],
-    prune_frequency_days=details["prune_frequency_days"],
-    sunlight_requirement=details["sunlight_requirement"],
-    humidity_requirement=details["humidity_requirement"],
-    temperature_min=details["temperature_min"],
-    temperature_max=details["temperature_max"],
-    max_height_cm=details["max_height_cm"],
-    soil_type=details["soil_type"],
-    is_toxic=details["is_toxic"]
-)
+            trefle_id=payload.trefle_id,
+            scientific_name=details["scientific_name"],
+            common_name=details["common_name"],
+            image_url=details["image_url"],
+            water_frequency_days=details["water_frequency_days"],
+            fertilize_frequency_days=details["fertilize_frequency_days"],
+            repot_frequency_days=details["repot_frequency_days"],
+            prune_frequency_days=details["prune_frequency_days"],
+            sunlight_requirement=details["sunlight_requirement"],
+            humidity_requirement=details["humidity_requirement"],
+            temperature_min=details["temperature_min"],
+            temperature_max=details["temperature_max"],
+            max_height_cm=details["max_height_cm"],
+            soil_type=details["soil_type"],
+            is_toxic=details["is_toxic"],
+        )
         db.add(db_info)
         db.commit()
         db.refresh(db_info)
-    
-    # Zur Wunschliste hinzufügen
+
+    # 3) wishlist item anlegen
     item = models.Wishlist(
-    user_id=user_id,
-    trefle_id=payload.trefle_id,
-    plant_info=db_info.id)
+        user_id=user_id,
+        trefle_id=payload.trefle_id,
+        plant_info_id=db_info.id
+    )
     db.add(item)
     db.commit()
-    
-    return {"status": "added", "plant": db_info.common_name}
+    db.refresh(item)
+
+    return {"status": "added", "id": item.id}
 
 @app.get("/wishlist/")
 def get_wishlist(user_id: int = Depends(require_login),db: Session = Depends(get_db)):
