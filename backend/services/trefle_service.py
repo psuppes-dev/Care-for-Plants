@@ -77,7 +77,7 @@ def get_plant_details(trefle_id: int):
                     humidity_req = 2
             
             # === DÜNGEN basierend auf Wachstumsrate ===
-            growth_rate = growth.get("growth_rate")
+            growth_rate = specifications.get("growth_rate")
             fertilize_days = 30
             if growth_rate:
                 if growth_rate == "fast": fertilize_days = 14
@@ -129,7 +129,12 @@ def get_plant_details(trefle_id: int):
             temp_min = 15
             temp_max = 25
             
-            # Minimum Temperature
+            # Maximum Temperatur
+            max_temp_data = growth.get("maximum_temperature", {})
+            if max_temp_data and max_temp_data.get("deg_c") is not None:
+                temp_max = int(max_temp_data["deg_c"])
+            
+            # Minimum Temperatur
             min_temp_data = growth.get("minimum_temperature", {})
             if min_temp_data and min_temp_data.get("deg_c"):
                 temp_min = int(min_temp_data["deg_c"])
@@ -144,15 +149,18 @@ def get_plant_details(trefle_id: int):
             
             # === BODENART ===
             soil_type = "universal"
-            
             soil_texture = growth.get("soil_texture")
-            if soil_texture:
-                if "sand" in str(soil_texture).lower(): soil_type = "sandig"
-                elif "clay" in str(soil_texture).lower(): soil_type = "lehmig"
-                elif "loam" in str(soil_texture).lower(): soil_type = "humusreich"
+            if soil_texture is not None:
+                v = int(soil_texture)  # 0..10
+                if v <= 2:
+                    soil_type = "lehmig"
+                elif v <= 6:
+                    soil_type = "universal"
+                else:
+                    soil_type = "sandig"
             
             # === TOXIZITÄT ===
-            toxicity = main_species.get("toxicity")
+            toxicity = specifications.get("toxicity")
             is_toxic = False
             if toxicity and str(toxicity).lower() not in ["none", "null", "low", "0"]:
                 is_toxic = True
