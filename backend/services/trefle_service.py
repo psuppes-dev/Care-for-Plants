@@ -1,31 +1,40 @@
 import requests
 import os
-from fastapi import HTTPException
+from dotenv import load_dotenv
 
-def _get_trefle_token() -> str:
-    token = (os.getenv("TREFLE_API_TOKEN") or "").strip()
-    if not token:
-        raise HTTPException(
-            status_code=500,
-            detail="TREFLE_API_TOKEN fehlt in der Runtime-Umgebung (Render)"
-        )
-    return token
+load_dotenv()
+# Wir holen das Token, entfernen aber sicherheitshalber Leerzeichen
+TREFLE_TOKEN = os.getenv("TREFLE_API_TOKEN", "").strip()
 
 def search_plants(query: str):
+    """
+    Sucht nach Pflanzen. 
+    Entspricht: https://trefle.io/api/v1/plants/search?token=...&q=...
+    """
     url = "https://trefle.io/api/v1/plants/search"
+    
     params = {
-        "token": _get_trefle_token(),
+        "token": TREFLE_TOKEN,
         "q": query
     }
-
-    r = requests.get(url, params=params, timeout=15)
-    print("Trefle status:", r.status_code)
-
-    if r.status_code != 200:
-        print("Trefle error body:", r.text[:200])
-        raise HTTPException(status_code=502, detail="Trefle API error")
-
-    return r.json().get("data", [])
+    
+    print(f"DEBUG: Rufe URL auf: {url} mit Query: {query}") # Damit wir sehen was passiert
+    
+    try:
+        response = requests.get(url, params=params)
+        
+        # Zeigt uns den exakten Statuscode (200 ist gut, 401 verboten, 404 nicht gefunden)
+        print(f"DEBUG: Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            return response.json().get("data", [])
+        else:
+            print(f"API Fehler: {response.text}")
+            return []
+            
+    except Exception as e:
+        print(f"Python Request Fehler: {e}")
+        return []
 
 def get_plant_details(trefle_id: int):
     """
@@ -33,7 +42,7 @@ def get_plant_details(trefle_id: int):
     Nutzt ALLE verfügbaren Trefle-Daten für bessere Schätzungen.
     """
     url = f"https://trefle.io/api/v1/plants/{trefle_id}"
-    params = {"token": _get_trefle_token()}
+    params = {"token": TREFLE_TOKEN}
     
     try:
         response = requests.get(url, params=params)
