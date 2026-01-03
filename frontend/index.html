@@ -404,12 +404,6 @@
                 <span class="brand-dot"></span>
                 Care for Plants
             </a>
-
-            <div class="d-none d-md-flex align-items-center gap-2">
-                <span class="chip">FastAPI + JS</span>
-                <span class="chip">Postgres</span>
-                <button class="btn btn-outline-light btn-sm" onclick="loadTasks()">Refresh</button>
-            </div>
         </div>
     </div>
 
@@ -419,9 +413,6 @@
             <div class="row g-4 align-items-center">
                 <div class="col-md-8">
                     <h1 class="display-6 fw-bold mb-2">Care for Plants – Deine Pflanzenpflege übersichtlich organisiert</h1>
-                    <p class="muted mb-0">
-                        Pflanzen hinzufügen, Standort prüfen, Pflegeaufgaben tracken und abhaken.
-                    </p>
                 </div>
                 <div class="col-md-4">
                     <div class="glass-2 p-3">
@@ -760,12 +751,12 @@
                     const taskBadges = `
             ${createTaskBadge('Gießen', '💧', task.days_until_watering)}
             ${createTaskBadge('Düngen', '🌱', task.days_until_fertilizing)}
-            ${createTaskBadge('Umtopfen', '🪴', task.days_until_repotting)}
+            ${createTaskBadge('Umtopfen', '⚱️', task.days_until_repotting)}
             ${createTaskBadge('Schneiden', '✂️', task.days_until_pruning)}
             ${createTaskBadge('Vermehren', '🧬', task.days_until_propagating)}
           `;
 
-                    const taskIcons = { 'water': '💧', 'fertilize': '🌱', 'repot': '🪴', 'prune': '✂️', 'propagate': '🧬' };
+                    const taskIcons = { 'water': '💧', 'fertilize': '🌱', 'repot': '⚱️', 'prune': '✂️', 'propagate': '🧬' };
                     const taskNames = { 'water': 'Gießen', 'fertilize': 'Düngen', 'repot': 'Umtopfen', 'prune': 'Schneiden', 'propagate': 'Vermehren' };
                     const nextTaskIcon = taskIcons[task.next_task];
                     const nextTaskName = taskNames[task.next_task];
@@ -1323,7 +1314,7 @@
             const container = document.getElementById('calendar-container');
             container.innerHTML = '<div class="text-center muted">Lade Kalender...</div>';
 
-            const taskIcons = { water: '💧', fertilize: '🌱', repot: '🪴', prune: '✂️', propagate: '🧬' };
+            const taskIcons = { water: '💧', fertilize: '🌱', repot: '⚱️', prune: '✂️', propagate: '🧬' };
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
             const taskFields = [
                 ['water', 'days_until_watering'],
