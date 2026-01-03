@@ -413,7 +413,8 @@
         <div class="glass p-4 p-md-5 mb-4">
             <div class="row g-4 align-items-center">
                 <div class="col-md-8">
-                    <h1 class="display-6 fw-bold mb-2">Care for Plants – Deine Pflanzenpflege übersichtlich organisiert</h1>
+                    <h1 class="display-6 fw-bold mb-2">Care for Plants – Deine Pflanzenpflege übersichtlich organisiert
+                    </h1>
                 </div>
                 <div class="col-md-4">
                     <div class="glass-2 p-3">
@@ -750,14 +751,21 @@
                     };
 
                     const taskBadges = `
-            ${createTaskBadge('Gießen', '💧', task.days_until_watering)}
-            ${createTaskBadge('Düngen', '🌱', task.days_until_fertilizing)}
-            ${createTaskBadge('Umtopfen', '⚱️', task.days_until_repotting)}
-            ${createTaskBadge('Schneiden', '✂️', task.days_until_pruning)}
-            ${createTaskBadge('Vermehren', '🧬', task.days_until_propagating)}
-          `;
+                        ${createTaskBadge('Gießen', '<i class="bi bi-droplet-fill"></i>', task.days_until_watering)}
+                        ${createTaskBadge('Düngen', '<i class="bi bi-flower1"></i>', task.days_until_fertilizing)}
+                        ${createTaskBadge('Umtopfen', '<i class="bi bi-box-seam-fill"></i>', task.days_until_repotting)}
+                        ${createTaskBadge('Schneiden', '<i class="bi bi-scissors"></i>', task.days_until_pruning)}
+                        ${createTaskBadge('Vermehren', '<i class="bi bi-diagram-3-fill"></i>', task.days_until_propagating)}
+                    `;
 
-                    const taskIcons = { 'water': '💧', 'fertilize': '🌱', 'repot': '⚱️', 'prune': '✂️', 'propagate': '🧬' };
+                    // Definition der Icons als HTML-Strings
+                    const taskIcons = {
+                        'water': '<i class="bi bi-droplet-fill"></i>',
+                        'fertilize': '<i class="bi bi-flower1"></i>',
+                        'repot': '<i class="bi bi-box-seam-fill"></i>',
+                        'prune': '<i class="bi bi-scissors"></i>',
+                        'propagate': '<i class="bi bi-diagram-3-fill"></i>'
+                    };
                     const taskNames = { 'water': 'Gießen', 'fertilize': 'Düngen', 'repot': 'Umtopfen', 'prune': 'Schneiden', 'propagate': 'Vermehren' };
                     const nextTaskIcon = taskIcons[task.next_task];
                     const nextTaskName = taskNames[task.next_task];
@@ -1334,7 +1342,14 @@
             const container = document.getElementById('calendar-container');
             container.innerHTML = '<div class="text-center muted">Lade Kalender...</div>';
 
-            const taskIcons = { water: '💧', fertilize: '🌱', repot: '⚱️', prune: '✂️', propagate: '🧬' };
+            // Definition der Icons als HTML-Strings
+            const taskIcons = {
+                'water': '<i class="bi bi-droplet-fill"></i>',
+                'fertilize': '<i class="bi bi-flower1"></i>',
+                'repot': '<i class="bi bi-box-seam-fill"></i>',
+                'prune': '<i class="bi bi-scissors"></i>',
+                'propagate': '<i class="bi bi-diagram-3-fill"></i>'
+            };
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
             const taskFields = [
                 ['water', 'days_until_watering'],
@@ -1410,9 +1425,9 @@
                   <div class="fw-bold">${taskIcons[it.type]} ${taskNames[it.type]}</div>
                   <div class="muted small">${it.plant} • ${it.species} • 📍 ${it.location}</div>
                 </div>
-                <button class="btn btn-sm btn-outline-light"
-                  onclick="performTask(${it.plantId}, '${it.type}', '${taskIcons[it.type]}', '${taskNames[it.type]}')">
-                  Erledigt
+                <button class="btn btn-sm btn-outline-success"
+                    onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')">
+                    Erledigt
                 </button>
               </li>
             `;
