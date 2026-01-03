@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Care For Plants</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         :root {
@@ -777,13 +778,32 @@
 
                 <div class="card-footer p-3">
                   <div class="btn-group w-100" role="group">
-                    <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">💧</button>
-                    <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen">🌱</button>
-                    <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">⚱️</button>
-                    <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">✂️</button>
-                    <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">🧬</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})">🗑️</button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})">🔁</button>
+                    <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">
+                        <i class="bi bi-droplet-fill"></i>
+                    </button>
+
+                    <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen">
+                        <i class="bi bi-flower1"></i>
+                    </button>
+
+                    <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">
+                        <i class="bi bi-box-seam-fill"></i> </button>
+
+                    <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">
+                        <i class="bi bi-scissors"></i>
+                    </button>
+
+                    <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Entfernen">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort wechseln">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
                   </div>
                 </div>
               </div>
