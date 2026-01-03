@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Care For Plants</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         :root {
@@ -375,6 +374,49 @@
             color: #111827 !important;
             font-style: normal;
         }
+
+        /* --- Styles für die neuen Bild-Icons --- */
+
+        .plant-icon {
+            width: 20px;
+            /* Feste Größe: Nicht zu groß, nicht zu klein */
+            height: 20px;
+            /* Quadratisch halten */
+            object-fit: contain;
+            /* Verhindert, dass das Bild verzerrt wird */
+            vertical-align: middle;
+            /* WICHTIG: Richtet das Icon mittig zur Textzeile aus */
+            margin-right: 6px;
+            /* Kleiner Abstand zum Text daneben */
+            display: inline-block;
+            /* Damit Margin und Transform funktionieren */
+        }
+
+        /* Optional: Kleiner Hover-Effekt für Icons in Buttons */
+        button:hover .plant-icon {
+            transform: scale(1.15);
+            /* Vergrößert das Icon leicht beim Drüberfahren */
+            transition: transform 0.2s ease;
+        }
+
+        /* --- Anpassung für die Badges (Die "in 5 Tagen" Anzeige) --- */
+        .task-badge {
+            display: inline-flex;
+            /* Flexbox hilft beim Ausrichten von Bild + Text */
+            align-items: center;
+            /* Vertikal zentrieren */
+            padding: 4px 8px;
+            /* Ein bisschen Luft */
+            /* Deine bestehenden Farben bleiben erhalten */
+        }
+
+        /* Spezialfall: In den Buttons unten (Gießen, Düngen etc.) 
+   soll das Icon keinen Abstand nach rechts haben, da kein Text folgt. 
+   (Das haben wir zwar teilweise schon im HTML per style="" gelöst, 
+   aber das hier ist die saubere CSS-Lösung) */
+        .btn .plant-icon {
+            margin-right: 0;
+        }
     </style>
 </head>
 
@@ -736,40 +778,59 @@
                     return;
                 }
 
+                // --- 1. Definitionen VOR der Schleife (Besser für die Performance) ---
+
+                // Die Bilder-Pfade
+                const taskIcons = {
+                    'water': '<img src="img/icons/water.png" class="plant-icon" alt="Gießen">',
+                    'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                    'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="Topf">',
+                    'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                    'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
+                    'swap': '<img src="img/icons/swap.png" class="plant-icon" alt="Standort">',
+                    'delete': '<img src="img/icons/delete.png" class="plant-icon" alt="Löschen">'
+                };
+
+                const taskNames = {
+                    'water': 'Gießen',
+                    'fertilize': 'Düngen',
+                    'repot': 'Umtopfen',
+                    'prune': 'Schneiden',
+                    'propagate': 'Vermehren'
+                };
+
+                // Hilfsfunktion für die kleinen Badges
+                const createTaskBadge = (name, icon, days) => {
+                    let badgeClass = 'task-upcoming';
+                    let text = `in ${days}d`;
+                    if (days < 0) {
+                        badgeClass = 'task-overdue';
+                        text = `${Math.abs(days)}d überfällig`;
+                    } else if (days === 0) {
+                        badgeClass = 'task-today';
+                        text = 'HEUTE';
+                    }
+                    return `<span class="task-badge ${badgeClass}">${icon} ${name}: ${text}</span>`;
+                };
+                // --- Ende Definitionen ---
+
+
                 tasks.forEach(task => {
-                    const createTaskBadge = (name, icon, days) => {
-                        let badgeClass = 'task-upcoming';
-                        let text = `in ${days}d`;
-                        if (days < 0) {
-                            badgeClass = 'task-overdue';
-                            text = `${Math.abs(days)}d überfällig`;
-                        } else if (days === 0) {
-                            badgeClass = 'task-today';
-                            text = 'HEUTE';
-                        }
-                        return `<span class="task-badge ${badgeClass}">${icon} ${name}: ${text}</span>`;
-                    };
 
+                    // Badges zusammenbauen
                     const taskBadges = `
-                        ${createTaskBadge('Gießen', '<i class="bi bi-droplet-fill"></i>', task.days_until_watering)}
-                        ${createTaskBadge('Düngen', '<i class="bi bi-flower1"></i>', task.days_until_fertilizing)}
-                        ${createTaskBadge('Umtopfen', '<i class="bi bi-box-seam-fill"></i>', task.days_until_repotting)}
-                        ${createTaskBadge('Schneiden', '<i class="bi bi-scissors"></i>', task.days_until_pruning)}
-                        ${createTaskBadge('Vermehren', '<i class="bi bi-diagram-3-fill"></i>', task.days_until_propagating)}
-                    `;
+                ${createTaskBadge('Gießen', taskIcons.water, task.days_until_watering)}
+                ${createTaskBadge('Düngen', taskIcons.fertilize, task.days_until_fertilizing)}
+                ${createTaskBadge('Umtopfen', taskIcons.repot, task.days_until_repotting)}
+                ${createTaskBadge('Schneiden', taskIcons.prune, task.days_until_pruning)}
+                ${createTaskBadge('Vermehren', taskIcons.propagate, task.days_until_propagating)}
+            `;
 
-                    // Definition der Icons als HTML-Strings
-                    const taskIcons = {
-                        'water': '<i class="bi bi-droplet-fill"></i>',
-                        'fertilize': '<i class="bi bi-flower1"></i>',
-                        'repot': '<i class="bi bi-box-seam-fill"></i>',
-                        'prune': '<i class="bi bi-scissors"></i>',
-                        'propagate': '<i class="bi bi-diagram-3-fill"></i>'
-                    };
-                    const taskNames = { 'water': 'Gießen', 'fertilize': 'Düngen', 'repot': 'Umtopfen', 'prune': 'Schneiden', 'propagate': 'Vermehren' };
-                    const nextTaskIcon = taskIcons[task.next_task];
-                    const nextTaskName = taskNames[task.next_task];
+                    // Nächste Aufgabe ermitteln
+                    const nextTaskIcon = taskIcons[task.next_task] || ''; // Fallback falls leer
+                    const nextTaskName = taskNames[task.next_task] || 'Unbekannt';
 
+                    // HTML Karte erstellen
                     const cardHtml = `
             <div class="col-lg-4 col-md-6">
               <div class="plant-card h-100">
@@ -778,7 +839,9 @@
                   <h5 class="mb-1">${task.plant}</h5>
                   <div class="muted small mb-2">${task.species}</div>
                   <div class="mb-2"><span class="chip">📍 ${task.location}</span></div>
+                  
                   <div class="task-badges mb-2">${taskBadges}</div>
+                  
                   <div class="alert ${task.next_task_days < 0 ? 'alert-danger' : task.next_task_days === 0 ? 'alert-warning' : 'alert-info'} py-2 mb-0">
                     <strong>Nächste Aufgabe:</strong> ${nextTaskIcon} ${nextTaskName}
                   </div>
@@ -787,36 +850,37 @@
                 <div class="card-footer p-3">
                   <div class="btn-group w-100" role="group">
                     <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">
-                        <i class="bi bi-droplet-fill"></i>
+                        <img src="img/icons/water.png" class="plant-icon" alt="Gießen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen">
-                        <i class="bi bi-flower1"></i>
+                        <img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">
-                        <i class="bi bi-box-seam-fill"></i> </button>
+                        <img src="img/icons/pot.png" class="plant-icon" alt="Umtopfen" style="margin:0;">
+                    </button>
 
                     <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">
-                        <i class="bi bi-scissors"></i>
+                        <img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">
-                        <i class="bi bi-diagram-3-fill"></i>
+                        <img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Entfernen">
-                        <i class="bi bi-trash3-fill"></i>
+                        <img src="img/icons/delete.png" class="plant-icon" alt="Löschen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort wechseln">
-                        <i class="bi bi-arrow-repeat"></i>
+                        <img src="img/icons/swap.png" class="plant-icon" alt="Wechseln" style="margin:0;">
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          `;
+            `;
                     container.innerHTML += cardHtml;
                 });
 
@@ -1342,15 +1406,18 @@
             const container = document.getElementById('calendar-container');
             container.innerHTML = '<div class="text-center muted">Lade Kalender...</div>';
 
-            // Definition der Icons als HTML-Strings
+            // 1. Definition der Icons
             const taskIcons = {
-                'water': '<i class="bi bi-droplet-fill"></i>',
-                'fertilize': '<i class="bi bi-flower1"></i>',
-                'repot': '<i class="bi bi-box-seam-fill"></i>',
-                'prune': '<i class="bi bi-scissors"></i>',
-                'propagate': '<i class="bi bi-diagram-3-fill"></i>'
+                'water': '<img src="img/icons/water.png" class="plant-icon" alt="Gießen">',
+                'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="Topf">',
+                'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren">'
             };
+
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
+
+            // Welche Felder aus der API sollen geprüft werden?
             const taskFields = [
                 ['water', 'days_until_watering'],
                 ['fertilize', 'days_until_fertilizing'],
@@ -1369,7 +1436,10 @@
                 plants.forEach(p => {
                     taskFields.forEach(([type, field]) => {
                         const d = p[field];
+                        // Sicherheitscheck: undefined oder null ignorieren
                         if (d === undefined || d === null) return;
+
+                        // Nur Aufgaben innerhalb des Zeitraums (oder überfällige) anzeigen
                         if (d > days) return;
 
                         const due = new Date(today);
@@ -1387,6 +1457,7 @@
                     });
                 });
 
+                // Sortieren: Überfällige zuerst, dann heute, dann Zukunft
                 items.sort((a, b) => a.due - b.due);
 
                 if (items.length === 0) {
@@ -1394,9 +1465,11 @@
                     return;
                 }
 
+                // Hilfsfunktionen für Datum
                 const fmt = (dt) => dt.toLocaleDateString('de-DE', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
                 const key = (dt) => dt.toISOString().slice(0, 10);
 
+                // Gruppieren nach Datum
                 const groups = {};
                 items.forEach(it => {
                     const k = key(it.due);
@@ -1409,23 +1482,41 @@
 
                 orderedKeys.forEach(k => {
                     const g = groups[k];
-                    const dayLabel = (g.items[0].daysUntil === 0) ? 'Heute' : (g.items[0].daysUntil === 1 ? 'Morgen' : '');
+
+                    // --- UX VERBESSERUNG: Label für Überfällig/Heute/Morgen ---
+                    let dayLabel = '';
+                    const firstItemDays = g.items[0].daysUntil; // Wir schauen uns das erste Item an um den Tag zu prüfen
+
+                    if (firstItemDays < 0) {
+                        dayLabel = '<span class="text-danger">⚠️ Überfällig</span>';
+                    } else if (firstItemDays === 0) {
+                        dayLabel = '<span class="text-primary">Heute</span>';
+                    } else if (firstItemDays === 1) {
+                        dayLabel = 'Morgen';
+                    }
+
+                    // Hintergrundfarbe des Headers je nach Status anpassen
+                    const headerClass = firstItemDays < 0 ? 'bg-danger text-white' : (firstItemDays === 0 ? 'bg-light' : '');
+                    const textClass = firstItemDays < 0 ? 'text-white' : ''; // Text im Header weiß machen, wenn Hintergrund rot
+
                     html += `
             <div class="plant-card mb-3">
-              <div class="card-header">
-                <strong>${dayLabel ? dayLabel + ' • ' : ''}${fmt(g.date)}</strong>
+              <div class="card-header ${headerClass}">
+                <strong class="${textClass}">${dayLabel ? dayLabel + ' • ' : ''}${fmt(g.date)}</strong>
               </div>
               <ul class="list-group list-group-flush">
-          `;
+            `;
 
                     g.items.forEach(it => {
                         html += `
               <li class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
-                  <div class="fw-bold">${taskIcons[it.type]} ${taskNames[it.type]}</div>
+                  <div class="fw-bold">
+                    ${taskIcons[it.type]} ${taskNames[it.type]}
+                  </div>
                   <div class="muted small">${it.plant} • ${it.species} • 📍 ${it.location}</div>
                 </div>
-                <button class="btn btn-sm btn-outline-success"
+                <button class="btn btn-sm btn-outline-success" 
                     onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')">
                     Erledigt
                 </button>
@@ -1439,7 +1530,8 @@
                 container.innerHTML = html;
 
             } catch (e) {
-                container.innerHTML = `<div class="alert alert-danger">Fehler: ${e}</div>`;
+                console.error(e); // console.error besser zum Debuggen
+                container.innerHTML = `<div class="alert alert-danger">Fehler beim Laden des Kalenders: ${e.message}</div>`;
             }
         }
 
