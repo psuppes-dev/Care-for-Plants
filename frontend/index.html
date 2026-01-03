@@ -417,6 +417,27 @@
         .btn .plant-icon {
             margin-right: 0;
         }
+
+        .plant-icon {
+            /* Größe relativ zur Schriftart (1.2em ist ca. Emoji-Größe) */
+            height: 1.2em !important;
+            width: auto !important;
+            /* Damit sie nicht verzerrt werden */
+
+            /* Ausrichtung perfekt zur Textlinie */
+            vertical-align: text-bottom !important;
+
+            /* Sicherheitsnetz, falls sie immer noch riesig sind */
+            max-height: 20px !important;
+
+            /* Kleiner Abstand zum Text */
+            margin-right: 4px;
+        }
+
+        /* In den Buttons unten darf kein Abstand sein */
+        button .plant-icon {
+            margin-right: 0 !important;
+        }
     </style>
 </head>
 
@@ -782,13 +803,14 @@
 
                 // Die Bilder-Pfade
                 const taskIcons = {
-                    'water': '<img src="img/icons/water.png" class="plant-icon" alt="Gießen">',
-                    'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
-                    'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="Topf">',
-                    'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
-                    'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
-                    'swap': '<img src="img/icons/swap.png" class="plant-icon" alt="Standort">',
-                    'delete': '<img src="img/icons/delete.png" class="plant-icon" alt="Löschen">'
+                    'water': '<img src="/img/icons/water.png" class="plant-icon" alt="Gießen">',
+                    'fertilize': '<img src="/img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                    'repot': '<img src="/img/icons/pot.png" class="plant-icon" alt="Topf">',
+                    'prune': '<img src="/img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                    'propagate': '<img src="/img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
+                    // Bei loadTasks hast du eventuell noch diese:
+                    'swap': '<img src="/img/icons/swap.png" class="plant-icon" alt="Standort">',
+                    'delete': '<img src="/img/icons/delete.png" class="plant-icon" alt="Löschen">'
                 };
 
                 const taskNames = {
@@ -1408,11 +1430,11 @@
 
             // 1. Definition der Icons
             const taskIcons = {
-                'water': '<img src="img/icons/water.png" class="plant-icon" alt="Gießen">',
-                'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
-                'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="Topf">',
-                'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
-                'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren">'
+                'water': '<img src="/img/icons/water.png" class="plant-icon" alt="Gießen">',
+                'fertilize': '<img src="/img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                'repot': '<img src="/img/icons/pot.png" class="plant-icon" alt="Topf">',
+                'prune': '<img src="/img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                'propagate': '<img src="/img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
             };
 
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
