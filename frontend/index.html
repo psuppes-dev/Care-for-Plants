@@ -779,7 +779,7 @@
                   <div class="btn-group w-100" role="group">
                     <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">💧</button>
                     <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen">🌱</button>
-                    <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">🪴</button>
+                    <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">⚱️</button>
                     <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">✂️</button>
                     <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">🧬</button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})">🗑️</button>
@@ -814,7 +814,7 @@
 
         async function waterPlant(id) { await performTask(id, 'water', '💧', 'Gießen'); }
         async function fertilizePlant(id) { await performTask(id, 'fertilize', '🌱', 'Düngen'); }
-        async function repotPlant(id) { await performTask(id, 'repot', '🪴', 'Umtopfen'); }
+        async function repotPlant(id) { await performTask(id, 'repot', '⚱️', 'Umtopfen'); }
         async function prunePlant(id) { await performTask(id, 'prune', '✂️', 'Schneiden'); }
         async function propagatePlant(id) { await performTask(id, 'propagate', '🧬', 'Vermehren'); }
 
