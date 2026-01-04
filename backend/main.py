@@ -8,7 +8,8 @@ from auth import router as auth_router, require_login
 from passlib.context import CryptContext
 from database import SessionLocal  
 from models import User
-
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 # Eigene Module
 import models, database
@@ -19,6 +20,12 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Care For Plants API")
 app.include_router(auth_router, prefix="/auth")
+
+BASE_DIR = Path(__file__).resolve().parent.parent  # Repo-Root 
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# serve /img/... -> frontend/img/...
+app.mount("/img", StaticFiles(directory=FRONTEND_DIR / "img"), name="img")
 
 # Testuser seeden
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
