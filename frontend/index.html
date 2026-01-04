@@ -803,14 +803,13 @@
 
                 // Die Bilder-Pfade
                 const taskIcons = {
-                    'water': '<img src="/img/icons/water.png" class="plant-icon" alt="Gießen">',
-                    'fertilize': '<img src="/img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
-                    'repot': '<img src="/img/icons/pot.png" class="plant-icon" alt="Topf">',
-                    'prune': '<img src="/img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
-                    'propagate': '<img src="/img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
-                    // Bei loadTasks hast du eventuell noch diese:
-                    'swap': '<img src="/img/icons/swap.png" class="plant-icon" alt="Standort">',
-                    'delete': '<img src="/img/icons/delete.png" class="plant-icon" alt="Löschen">'
+                    'water': '<img src="../img/icons/water.png" class="plant-icon" alt="Gießen">',
+                    'fertilize': '<img src="../img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                    'repot': '<img src="../img/icons/pot.png" class="plant-icon" alt="Topf">',
+                    'prune': '<img src="../img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                    'propagate': '<img src="../img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
+                    'swap': '<img src="../img/icons/swap.png" class="plant-icon" alt="Standort">',
+                    'delete': '<img src="../img/icons/delete.png" class="plant-icon" alt="Löschen">'
                 };
 
                 const taskNames = {
@@ -872,31 +871,31 @@
                 <div class="card-footer p-3">
                   <div class="btn-group w-100" role="group">
                     <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">
-                        <img src="img/icons/water.png" class="plant-icon" alt="Gießen" style="margin:0;">
+                        <img src="../img/icons/water.png" class="plant-icon" alt="Gießen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen">
-                        <img src="img/icons/fertilize.png" class="plant-icon" alt="Düngen" style="margin:0;">
+                        <img src="../img/icons/fertilize.png" class="plant-icon" alt="Düngen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">
-                        <img src="img/icons/pot.png" class="plant-icon" alt="Umtopfen" style="margin:0;">
+                        <img src="../img/icons/pot.png" class="plant-icon" alt="Umtopfen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">
-                        <img src="img/icons/scissors.png" class="plant-icon" alt="Schneiden" style="margin:0;">
+                        <img src="../img/icons/scissors.png" class="plant-icon" alt="Schneiden" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">
-                        <img src="img/icons/multiply.png" class="plant-icon" alt="Vermehren" style="margin:0;">
+                        <img src="../img/icons/multiply.png" class="plant-icon" alt="Vermehren" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Entfernen">
-                        <img src="img/icons/delete.png" class="plant-icon" alt="Löschen" style="margin:0;">
+                        <img src="../img/icons/delete.png" class="plant-icon" alt="Löschen" style="margin:0;">
                     </button>
 
                     <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort wechseln">
-                        <img src="img/icons/swap.png" class="plant-icon" alt="Wechseln" style="margin:0;">
+                        <img src="../img/icons/swap.png" class="plant-icon" alt="Wechseln" style="margin:0;">
                     </button>
                   </div>
                 </div>
@@ -1430,11 +1429,11 @@
 
             // 1. Definition der Icons
             const taskIcons = {
-                'water': '<img src="/img/icons/water.png" class="plant-icon" alt="Gießen">',
-                'fertilize': '<img src="/img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
-                'repot': '<img src="/img/icons/pot.png" class="plant-icon" alt="Topf">',
-                'prune': '<img src="/img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
-                'propagate': '<img src="/img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
+                'water': '<img src="../img/icons/water.png" class="plant-icon" alt="Gießen">',
+                'fertilize': '<img src="../img/icons/fertilize.png" class="plant-icon" alt="Düngen">',
+                'repot': '<img src="../img/icons/pot.png" class="plant-icon" alt="Topf">',
+                'prune': '<img src="../img/icons/scissors.png" class="plant-icon" alt="Schneiden">',
+                'propagate': '<img src="../img/icons/multiply.png" class="plant-icon" alt="Vermehren">',
             };
 
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
