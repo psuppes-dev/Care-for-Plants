@@ -939,6 +939,12 @@
             }
         }
 
+        // Neue Wrapperfunktion, damit Kalender automatisch aktualisiert wird
+        async function performTaskAndReloadCalendar(plantId, taskType, emoji, name) {
+          await performTask(plantId, taskType, emoji, name);
+          await loadCalendar();
+        }
+
         async function waterPlant(id) { await performTask(id, 'water', '💧', 'Gießen'); }
         async function fertilizePlant(id) { await performTask(id, 'fertilize', '🌱', 'Düngen'); }
         async function repotPlant(id) { await performTask(id, 'repot', '⚱️', 'Umtopfen'); }
@@ -1542,7 +1548,8 @@
               </div>
               <ul class="list-group list-group-flush">
             `;
-
+                    
+            // Erledigt-Button ruft nun Wrapperfunktion auf
                     g.items.forEach(it => {
                         html += `
               <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -1553,7 +1560,7 @@
                   <div class="muted small">${it.plant} • ${it.species} • 📍 ${it.location}</div>
                 </div>
                 <button class="btn btn-sm btn-outline-success" 
-                    onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')">
+                    onclick="performTaskAndReloadCalendar(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')">
                     Erledigt
                 </button>
               </li>
