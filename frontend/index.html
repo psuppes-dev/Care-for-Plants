@@ -494,6 +494,9 @@
                 <span class="brand-dot"></span>
                 Care for Plants
             </a>
+            <button id="logoutBtn" class="btn btn-sm btn-outline-light" onclick="logout()" style="display:none;">
+                Abmelden
+            </button>
         </div>
     </div>
 
@@ -1664,12 +1667,13 @@
             const res = await fetch("/auth/login", {
                 method: "POST",
                 body: form,
-                credentials: "include"
+                credentials: "include" // Wichtig, damit das Session-Cookie gesetzt wird
             });
 
             if (res.ok) {
                 document.getElementById("loginOverlay").style.display = "none";
-                loadTasks(); // App starten
+                document.getElementById("logoutBtn").style.display = "block"; // Button anzeigen
+                loadTasks();
             } else {
                 alert("Login fehlgeschlagen");
             }
@@ -1677,13 +1681,30 @@
 
         // Check beim Start
         async function checkAuth() {
-            const res = await fetch("/auth/me", { credentials: "include" });
+            const res = await fetch("/auth/me", { credentials: "include" }); // Prüft Cookie
             if (res.status === 401) {
                 document.getElementById("loginOverlay").style.display = "flex";
+                document.getElementById("logoutBtn").style.display = "none"; // Button verstecken
                 return;
             }
             document.getElementById("loginOverlay").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "block"; // Button anzeigen
             loadTasks();
+        }
+
+        // Logout 
+        async function logout() {
+            try {
+                const res = await fetch("/auth/logout", {
+                    method: "POST",
+                    credentials: "include" // Löscht das Cookie im Backend
+                });
+                if (res.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error("Logout fehlgeschlagen", error);
+            }
         }
 
     </script>
