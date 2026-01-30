@@ -506,7 +506,18 @@ def dashboard_tasks(user_id: int = Depends(require_login),db: Session = Depends(
             "days_until_propagating": prop_days_until,
             "next_task": next_task[0],
             "next_task_days": next_task[1],
-            "status": status
+            "status": status,
+            "plant_info_full": {
+                "water_frequency_days": plant.plant_info.water_frequency_days,
+                "fertilize_frequency_days": plant.plant_info.fertilize_frequency_days,
+                "sunlight_requirement": plant.plant_info.sunlight_requirement,
+                "humidity_requirement": plant.plant_info.humidity_requirement,
+                "temperature_min": plant.plant_info.temperature_min,
+                "temperature_max": plant.plant_info.temperature_max,
+                "max_height_cm": plant.plant_info.max_height_cm,
+                "soil_type": plant.plant_info.soil_type,
+                "is_toxic": plant.plant_info.is_toxic
+            }
         })
     
     return sorted(tasks, key=lambda x: x["next_task_days"])

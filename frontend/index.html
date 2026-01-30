@@ -839,15 +839,14 @@
                     return;
                 }
 
-                // 1. Definition der Icons (Pfad angepasst: kein Slash am Anfang!)
                 const taskIcons = {
-                    'water': '<img src="/img/icons/water.png" class="plant-icon" alt="💧">',
-                    'fertilize': '<img src="/img/icons/fertilize.png" class="plant-icon" alt="⚡">',
-                    'repot': '<img src="/img/icons/pot.png" class="plant-icon" alt="🪴">',
-                    'prune': '<img src="/img/icons/scissors.png" class="plant-icon" alt="✂️">',
-                    'propagate': '<img src="/img/icons/multiply.png" class="plant-icon" alt="🌱">',
-                    'swap': '<img src="/img/icons/swap.png" class="plant-icon" alt="↔">',
-                    'delete': '<img src="/img/icons/delete.png" class="plant-icon" alt="🗑">'
+                    'water': '<img src="img/icons/water.png" class="plant-icon" alt="💧">',
+                    'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="⚡">',
+                    'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="🪴">',
+                    'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="✂️">',
+                    'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="🌱">',
+                    'swap': '<img src="img/icons/swap.png" class="plant-icon" alt="↔">',
+                    'delete': '<img src="img/icons/delete.png" class="plant-icon" alt="🗑">'
                 };
 
                 const taskNames = {
@@ -869,12 +868,15 @@
                 };
 
                 tasks.forEach(task => {
+                    // WICHTIG: Plant-Info für das Modal vorbereiten
+                    const safeInfo = JSON.stringify(task.plant_info_full).replace(/"/g, '&quot;');
+
                     const taskBadges = `
                 ${createTaskBadge('Gießen', taskIcons.water, task.days_until_watering)}
                 ${createTaskBadge('Düngen', taskIcons.fertilize, task.days_until_fertilizing)}
-                ${createTaskBadge('Umtopfen', taskIcons.repot, task.days_until_repotting)}
-                ${createTaskBadge('Schneiden', taskIcons.prune, task.days_until_pruning)}
-                ${createTaskBadge('Vermehren', taskIcons.propagate, task.days_until_propagating)}
+                ${createTaskBadge('Umtopfen', taskIcons.repot, task['days_until_repotting'])}
+                ${createTaskBadge('Schneiden', taskIcons.prune, task['days_until_pruning'])}
+                ${createTaskBadge('Vermehren', taskIcons.propagate, task['days_until_propagating'])}
             `;
 
                     const nextTaskIcon = taskIcons[task.next_task] || '';
@@ -897,8 +899,7 @@
                 </div>
 
                 <div class="card-footer p-2 bg-light">
-                  <div class="d-flex justify-content-between">
-                    
+                  <div class="d-flex justify-content-between align-items-center">
                     <div class="btn-group" role="group">
                         <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen">
                             <img src="img/icons/water.png" class="btn-icon-img" alt="Gießen">
@@ -909,15 +910,12 @@
                         <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen">
                             <img src="img/icons/pot.png" class="btn-icon-img" alt="Umtopfen">
                         </button>
-                        <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden">
-                            <img src="img/icons/scissors.png" class="btn-icon-img" alt="Schneiden">
-                        </button>
-                        <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren">
-                            <img src="img/icons/multiply.png" class="btn-icon-img" alt="Vermehren">
-                        </button>
                     </div>
 
-                    <div class="btn-group ms-1" role="group">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-info" onclick="showEditModalFromDashboard(${task.id}, ${safeInfo})" title="Eigenschaften">
+                            <img src="img/icons/scissors.png" class="btn-icon-img" style="filter: hue-rotate(180deg);" alt="Edit">
+                        </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort">
                             <img src="img/icons/swap.png" class="btn-icon-img" alt="Wechseln">
                         </button>
@@ -936,6 +934,55 @@
             } catch (error) {
                 console.error("Fehler:", error);
                 container.innerHTML = `<div class="alert alert-danger">Fehler: ${error}</div>`;
+            }
+        }
+        let editSource = "wishlist"; // Merkt sich, woher wir kommen
+
+        function showEditModalFromDashboard(id, info) {
+            editSource = "dashboard";
+            document.getElementById('editWishlistId').value = id;
+
+            // Formular mit Backend-Daten befüllen
+            document.getElementById('editWater').value = info.water_frequency_days;
+            document.getElementById('editFertilize').value = info.fertilize_frequency_days;
+            document.getElementById('editLight').value = info.sunlight_requirement;
+            document.getElementById('editHumidity').value = info.humidity_requirement;
+            document.getElementById('editTempMin').value = info.temperature_min;
+            document.getElementById('editTempMax').value = info.temperature_max;
+            document.getElementById('editHeight').value = info.max_height_cm;
+            document.getElementById('editSoil').value = info.soil_type;
+            document.getElementById('editToxic').checked = info.is_toxic;
+
+            new bootstrap.Modal(document.getElementById('editPlantModal')).show();
+        }
+
+        // Speicherfunktion muss wissen, welchen Pfad sie nimmt
+        async function savePlantEdit() {
+            const id = document.getElementById('editWishlistId').value;
+            // Wenn Quelle Dashboard, nutzen wir den MyPlant Endpoint
+            const url = `${API_URL}/wishlist/${id}/plant-info`;
+
+            const payload = {
+                water_frequency_days: parseInt(document.getElementById('editWater').value),
+                fertilize_frequency_days: parseInt(document.getElementById('editFertilize').value),
+                sunlight_requirement: parseInt(document.getElementById('editLight').value),
+                humidity_requirement: parseInt(document.getElementById('editHumidity').value),
+                temperature_min: parseInt(document.getElementById('editTempMin').value),
+                temperature_max: parseInt(document.getElementById('editTempMax').value),
+                max_height_cm: parseInt(document.getElementById('editHeight').value),
+                soil_type: document.getElementById('editSoil').value,
+                is_toxic: document.getElementById('editToxic').checked
+            };
+
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('editPlantModal')).hide();
+                editSource === "dashboard" ? loadTasks() : loadWishlist();
             }
         }
 
@@ -1309,9 +1356,10 @@
 
         async function showAddPlantModal() {
             try {
+                // 1. Daten laden (Nutzt deinen bestehenden Endpunkt)
                 const [wishRes, locRes] = await Promise.all([
-                    fetch(`${API_URL}/wishlist/`),
-                    fetch(`${API_URL}/locations/`)
+                    fetch(`${API_URL}/wishlist/`, { credentials: "include" }),
+                    fetch(`${API_URL}/locations/`, { credentials: "include" })
                 ]);
 
                 const wishlist = await wishRes.json();
@@ -1321,39 +1369,52 @@
                 const locSelect = document.getElementById('locationSelect');
 
                 wishSelect.innerHTML = "";
-                locSelect.innerHTML = "";
-
                 if (wishlist.length === 0) {
-                    alert("Deine Wunschliste ist leer. Suche erst nach Pflanzen!");
+                    alert("Deine Wunschliste ist leer.");
                     return;
                 }
 
+                // Wunschliste befüllen
                 wishlist.forEach(item => {
                     const opt = document.createElement('option');
-                    opt.value = item.trefle_id;
-                    opt.text = item.common_name
-                        ? `${item.common_name} (${item.scientific_name})`
-                        : item.scientific_name;
+                    opt.value = item.id;
+                    // Wir speichern die passenden Standorte als JSON im Datensatz der Option
+                    opt.dataset.suitable = JSON.stringify(item.suitable_locations);
+                    opt.text = item.common_name ? `${item.common_name} (${item.scientific_name})` : item.scientific_name;
                     wishSelect.appendChild(opt);
                 });
 
-                if (locations.length === 0) {
-                    const opt = document.createElement('option');
-                    opt.text = "Erst Standort anlegen!";
-                    locSelect.appendChild(opt);
-                } else {
+                // Funktion zum Aktualisieren der Standort-Empfehlungen im Dropdown
+                const updateLocDropdown = () => {
+                    const selectedOpt = wishSelect.options[wishSelect.selectedIndex];
+                    const suitableNames = JSON.parse(selectedOpt.dataset.suitable || "[]");
+
+                    locSelect.innerHTML = "";
+                    const good = document.createElement('optgroup');
+                    good.label = '✅ Empfohlen (Bedingungen erfüllt)';
+                    const other = document.createElement('optgroup');
+                    other.label = '⚠️ Nicht ideal';
+
                     locations.forEach(loc => {
                         const opt = document.createElement('option');
                         opt.value = loc.id;
-                        opt.text = loc.name;
-                        locSelect.appendChild(opt);
+                        const isSuitable = suitableNames.includes(loc.name);
+
+                        opt.text = isSuitable ? loc.name : `${loc.name} (Bedingungen weichen ab)`;
+                        (isSuitable ? good : other).appendChild(opt);
                     });
-                }
+
+                    if (good.children.length) locSelect.appendChild(good);
+                    if (other.children.length) locSelect.appendChild(other);
+                };
+
+                wishSelect.onchange = updateLocDropdown;
+                updateLocDropdown(); // Initial aufrufen
 
                 new bootstrap.Modal(document.getElementById('addPlantModal')).show();
 
             } catch (error) {
-                alert("Fehler beim Laden der Daten: " + error);
+                console.error("Fehler:", error);
             }
         }
 
@@ -1398,8 +1459,17 @@
         }
 
         async function createLocation() {
+            // 1. Werte aus dem Formular holen
+            const nameInput = document.getElementById('locationName').value;
+
+            // 2. Validierung: Ist ein Name eingegeben?
+            if (!nameInput || nameInput.trim() === "") {
+                alert("Bitte gib dem Standort einen Namen (z.B. Wohnzimmer)!");
+                return; // Funktion abbrechen
+            }
+
             const payload = {
-                name: document.getElementById('locationName').value,
+                name: nameInput,
                 light_level: parseInt(document.getElementById('locationLight').value),
                 humidity_level: parseInt(document.getElementById('locationHumidity').value),
                 temperature_avg: parseInt(document.getElementById('locationTemp').value),
@@ -1416,13 +1486,22 @@
 
                 if (response.ok) {
                     alert('✅ Standort erstellt!');
-                    bootstrap.Modal.getInstance(document.getElementById('addLocationModal')).hide();
+                    // Modal schließen
+                    const modalElement = document.getElementById('addLocationModal');
+                    bootstrap.Modal.getInstance(modalElement).hide();
+
+                    // Felder leeren für das nächste Mal
+                    document.getElementById('locationName').value = '';
+
+                    // Liste aktualisieren
                     loadLocations();
                 } else {
-                    alert('Fehler beim Erstellen.');
+                    const errorData = await response.json();
+                    alert('Fehler beim Erstellen: ' + (errorData.detail || 'Unbekannter Fehler'));
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Fehler beim Erstellen des Standorts:", error);
+                alert("Verbindung zum Server fehlgeschlagen.");
             }
         }
 
