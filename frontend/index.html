@@ -825,98 +825,60 @@
         let editSource = "wishlist"; // Merkt sich, woher wir kommen
 
         // ---------- DASHBOARD LADEN ----------
-        async function loadTasks() {
-            const container = document.getElementById('plant-container');
-            container.innerHTML = '<div class="col-12 text-center muted">Lade Daten...</div>';
+        tasks.forEach(task => {
+            const safeInfo = JSON.stringify(task.plant_info_full).replace(/"/g, '&quot;');
 
-            try {
-                const response = await fetch(`${API_URL}/dashboard/tasks`);
-                const tasks = await response.json();
+            // --- NEU: Logik für Giftigkeit im Dashboard ---
+            const isToxic = task.plant_info_full && task.plant_info_full.is_toxic;
+            const toxicClass = isToxic ? 'toxic-warning' : ''; // Nutzt deine CSS Klasse
+            const toxicBadge = isToxic ? '<span class="badge bg-danger ms-2">GIFTIG</span>' : '';
 
-                container.innerHTML = "";
+            const taskBadges = `
+        ${createTaskBadge('Gießen', taskIcons.water, task.days_until_watering)}
+        ${createTaskBadge('Düngen', taskIcons.fertilize, task.days_until_fertilizing)}
+        ${createTaskBadge('Umtopfen', taskIcons.repot, task.days_until_repotting)}
+        ${createTaskBadge('Schneiden', taskIcons.prune, task.days_until_pruning)}
+        ${createTaskBadge('Vermehren', taskIcons.propagate, task.days_until_propagating)}
+    `;
 
-                if (tasks.length === 0) {
-                    container.innerHTML = '<div class="col-12 text-center">Noch keine Pflanzen da. Füge welche hinzu!</div>';
-                    return;
-                }
+            const nextTaskIcon = taskIcons[task.next_task] || '';
+            const nextTaskName = taskNames[task.next_task] || 'Unbekannt';
 
-                const taskIcons = {
-                    'water': '<img src="img/icons/water.png" class="plant-icon" alt="💧">',
-                    'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" alt="⚡">',
-                    'repot': '<img src="img/icons/pot.png" class="plant-icon" alt="🪴">',
-                    'prune': '<img src="img/icons/scissors.png" class="plant-icon" alt="✂️">',
-                    'propagate': '<img src="img/icons/multiply.png" class="plant-icon" alt="🌱">'
-                };
-
-                const taskNames = {
-                    'water': 'Gießen', 'fertilize': 'Düngen', 'repot': 'Umtopfen',
-                    'prune': 'Schneiden', 'propagate': 'Vermehren'
-                };
-
-                const createTaskBadge = (name, icon, days) => {
-                    let badgeClass = 'task-upcoming';
-                    let text = `in ${days}d`;
-                    if (days < 0) {
-                        badgeClass = 'task-overdue';
-                        text = `${Math.abs(days)}d überfällig`;
-                    } else if (days === 0) {
-                        badgeClass = 'task-today';
-                        text = 'HEUTE';
-                    }
-                    return `<span class="task-badge ${badgeClass}">${icon} ${name}: ${text}</span>`;
-                };
-
-                tasks.forEach(task => {
-                    const safeInfo = JSON.stringify(task.plant_info_full).replace(/"/g, '&quot;');
-
-                    const taskBadges = `
-                    ${createTaskBadge('Gießen', taskIcons.water, task.days_until_watering)}
-                    ${createTaskBadge('Düngen', taskIcons.fertilize, task.days_until_fertilizing)}
-                    ${createTaskBadge('Umtopfen', taskIcons.repot, task.days_until_repotting)}
-                    ${createTaskBadge('Schneiden', taskIcons.prune, task.days_until_pruning)}
-                    ${createTaskBadge('Vermehren', taskIcons.propagate, task.days_until_propagating)}
-                `;
-
-                    const nextTaskIcon = taskIcons[task.next_task] || '';
-                    const nextTaskName = taskNames[task.next_task] || 'Unbekannt';
-
-                    const cardHtml = `
-                <div class="col-lg-4 col-md-6 mb-4">
-                  <div class="plant-card h-100">
-                    <img src="${task.image || 'https://via.placeholder.com/300?text=Kein+Bild'}" class="w-100" style="height: 200px; object-fit: cover;" alt="${task.plant}">
-                    <div class="p-3">
-                      <h5 class="mb-1">${task.plant}</h5>
-                      <div class="muted small mb-2">${task.species}</div>
-                      <div class="mb-2"><span class="chip">📍 ${task.location}</span></div>
-                      <div class="task-badges mb-2 d-flex flex-column align-items-start gap-1">${taskBadges}</div>
-                      <div class="alert ${task.next_task_days < 0 ? 'alert-danger' : task.next_task_days === 0 ? 'alert-warning' : 'alert-info'} py-2 mb-0 mt-3 w-100">
-                        <strong>Nächste Aufgabe:</strong> ${nextTaskIcon} ${nextTaskName}
-                      </div>
-                    </div>
-                    <div class="card-footer p-2 bg-light">
-                      <div class="d-flex justify-content-between align-items-center">
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen"><img src="img/icons/water.png" class="btn-icon-img" alt="Gießen"></button>
-                            <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen"><img src="img/icons/fertilize.png" class="btn-icon-img" alt="Düngen"></button>
-                            <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen"><img src="img/icons/pot.png" class="btn-icon-img" alt="Umtopfen"></button>
-                            <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden"><img src="img/icons/scissors.png" class="btn-icon-img" alt="Schneiden"></button>
-                            <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren"><img src="img/icons/multiply.png" class="btn-icon-img" alt="Vermehren"></button>
-                        </div>
-                        <div class="btn-group ms-1" role="group">
-                            <button class="btn btn-sm btn-outline-info" onclick="showEditModalFromDashboard(${task.id}, ${safeInfo})" title="Eigenschaften">⚙️</button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort"><img src="img/icons/swap.png" class="btn-icon-img" alt="Wechseln"></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Löschen"><img src="img/icons/delete.png" class="btn-icon-img" alt="Löschen"></button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>`;
-                    container.innerHTML += cardHtml;
-                });
-            } catch (error) {
-                console.error("Dashboard Fehler:", error);
-            }
-        }
+            const cardHtml = `
+    <div class="col-lg-4 col-md-6 mb-4">
+      <div class="plant-card h-100 ${toxicClass}">
+        <img src="${task.image || 'https://via.placeholder.com/300?text=Kein+Bild'}" class="w-100" style="height: 200px; object-fit: cover;" alt="${task.plant}">
+        <div class="p-3">
+          <h5 class="mb-1 d-flex align-items-center">${task.plant} ${toxicBadge}</h5>
+          <div class="muted small mb-2">${task.species}</div>
+          <div class="mb-2"><span class="chip">📍 ${task.location}</span></div>
+          
+          <div class="task-badges mb-2 d-flex flex-column align-items-start gap-1">${taskBadges}</div>
+          
+          <div class="alert ${task.next_task_days < 0 ? 'alert-danger' : task.next_task_days === 0 ? 'alert-warning' : 'alert-info'} py-2 mb-0 mt-3 w-100">
+            <strong>Nächste Aufgabe:</strong> ${nextTaskIcon} ${nextTaskName}
+          </div>
+        </div>
+        <div class="card-footer p-2 bg-light">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="btn-group" role="group">
+                <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen"><img src="img/icons/water.png" class="btn-icon-img"></button>
+                <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen"><img src="img/icons/fertilize.png" class="btn-icon-img"></button>
+                <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen"><img src="img/icons/pot.png" class="btn-icon-img"></button>
+                <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden"><img src="img/icons/scissors.png" class="btn-icon-img"></button>
+                <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren"><img src="img/icons/multiply.png" class="btn-icon-img"></button>
+            </div>
+            <div class="btn-group ms-1" role="group">
+                <button class="btn btn-sm btn-outline-info" onclick="showEditModalFromDashboard(${task.id}, ${safeInfo})" title="Eigenschaften">⚙️</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort"><img src="img/icons/swap.png" class="btn-icon-img"></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Löschen"><img src="img/icons/delete.png" class="btn-icon-img"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+            container.innerHTML += cardHtml;
+        });
 
         // ---------- MODAL HANDLING (DASHBOARD EDIT ADDED) ----------
         function showEditPlantModal(wishlistId, plant) {
@@ -1007,7 +969,31 @@
         async function fertilizePlant(id) { await performTask(id, 'fertilize', '🌱', 'Düngen'); }
         async function repotPlant(id) { await performTask(id, 'repot', '⚱️', 'Umtopfen'); }
         async function prunePlant(id) { await performTask(id, 'prune', '✂️', 'Schneiden'); }
-        async function propagatePlant(id) { await performTask(id, 'propagate', '🧬', 'Vermehren'); }
+        async function propagatePlant(id) {
+            // 1. User nach Anzahl fragen
+            const count = prompt("Wie viele Ableger hast du erstellt?", "1");
+
+            // Abbrechen, wenn nichts eingegeben wurde oder keine Zahl
+            if (count === null || isNaN(count) || parseInt(count) <= 0) return;
+
+            try {
+                // 2. Request an den neuen Backend-Endpunkt (mit Query-Parameter 'count')
+                const response = await fetch(`${API_URL}/my-plants/${id}/propagate?count=${parseInt(count)}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert(`🌱 Glückwunsch! ${count} neue Ableger sind im Dashboard eingezogen.`);
+                    loadTasks();    // Dashboard sofort aktualisieren
+                    loadCalendar(); // Kalender aktualisieren (da neue Aufgaben entstehen)
+                } else {
+                    alert("Fehler beim Erstellen der Ableger.");
+                }
+            } catch (error) {
+                console.error("Vermehrungs-Fehler:", error);
+                alert("Serververbindung fehlgeschlagen.");
+            }
+        }
 
         async function deleteMyPlant(id) {
             if (!confirm("Pflanze wirklich entfernen?")) return;

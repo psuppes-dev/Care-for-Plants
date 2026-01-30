@@ -760,3 +760,30 @@ app.mount(
     StaticFiles(directory=FRONTEND_DIR),
     name="static"
 )
+
+from datetime import datetime
+
+@app.post("/my-plants/{plant_id}/propagate")
+def propagate_plant(plant_id: int, count: int = 1, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
+    """Erstellt X Ableger einer Pflanze am selben Standort"""
+    
+    # 1. Mutterpflanze finden
+    mother = db.query(models.MyPlant).filter(
+        models.MyPlant.id == plant_id, 
+        models.MyPlant.user_id == user_id
+    ).first()
+    
+    if not mother:
+        raise HTTPException(status_code=404, detail="Mutterpflanze nicht gefunden")
+
+    # 2. X Ableger in die Datenbank schreiben
+    for i in range(count):
+        new_baby = models.MyPlant(
+            nickname=f"Ableger von {mother.nickname} #{i+1}",
+            plant_info_id=mother.plant_info_id,  # Gleiche botanische Info
+            location_id=mother.location_id,      # Gleicher Standort (kann man später verschieben)
+            user_id=user_id,
+            last_watered=datetime.now(),         # Frisch versorgt beim Einpflanzen
+            last_fertilized=datetime.now()
+        )
+        db.add(new_baby)
