@@ -473,21 +473,15 @@
             margin-right: 5px;
         }
 
-        .calendar-card {
-            transition: transform 0.2s;
+        .calendar-card { 
+            transition: transform 0.2s ease, box-shadow 0.2s ease; 
         }
-
-        .calendar-card:hover {
-            transform: translateY(-2px);
+        .calendar-card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; 
         }
-
-        .action-btn:hover {
-            background: #16a34a !important;
-            transform: scale(1.05);
-        }
-
-        .hover-bright:hover {
-            background-color: #fafafa !important;
+        .hover-bright:hover { 
+            background-color: #fcfcfc !important; 
         }
     </style>
 </head>
@@ -1266,17 +1260,20 @@
                     const g = groups[k];
                     const diff = g.items[0].daysUntil;
 
-                    // --- PROFESSIONAL COLOR SCORING ---
+                    // --- COLOR SCORING ---
                     let headerStyle = "background: #f8f9fa; color: #333; border-left: 5px solid #dee2e6;";
                     let statusLabel = "";
 
                     if (diff < 0) {
+                        // KRITISCH (Rot)
                         headerStyle = "background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%); color: #dc3545; border-left: 5px solid #dc3545;";
                         statusLabel = '<span class="badge rounded-pill bg-danger me-2 shadow-sm">KRITISCH</span>';
                     } else if (diff === 0) {
-                        headerStyle = "background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%); color: #0d6efd; border-left: 5px solid #0d6efd;";
-                        statusLabel = '<span class="badge rounded-pill bg-primary me-2 shadow-sm">HEUTE</span>';
+                        // HEUTE (Gelb)
+                        headerStyle = "background: linear-gradient(90deg, #fff9db 0%, #ffffff 100%); color: #856404; border-left: 5px solid #ffc107;";
+                        statusLabel = '<span class="badge rounded-pill bg-warning text-dark me-2 shadow-sm">HEUTE</span>';
                     } else if (diff === 1) {
+                        // MORGEN (Neutral/Grau)
                         headerStyle = "background: #ffffff; color: #666; border-left: 5px solid #6c757d;";
                         statusLabel = '<span class="badge rounded-pill bg-secondary me-2">MORGEN</span>';
                     }
