@@ -960,6 +960,7 @@
 
         // Speicherfunktion muss wissen, welchen Pfad sie nimmt
         async function savePlantEdit() {
+            console.log("AKTUELLER MODUS VOR SPEICHERN:", editSource);
             const id = document.getElementById('editWishlistId').value;
 
             // Dynamische URL je nach Quelle
