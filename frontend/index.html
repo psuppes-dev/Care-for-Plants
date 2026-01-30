@@ -934,6 +934,7 @@
                 if (response.ok) {
                     alert(`${emoji} ${name} erledigt!`);
                     loadTasks();
+                    loadCalendar();
                 } else {
                     alert(`❌ Fehler beim ${name}`);
                 }
