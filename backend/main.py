@@ -360,6 +360,44 @@ def update_plant_info(item_id: int,updates: PlantInfoUpdate,user_id: int = Depen
     db.commit()
     return {"status": "updated", "plant": plant_info.common_name}
 
+@app.put("/my-plants/{plant_id}/plant-info")
+def update_my_plant_info(plant_id: int, updates: PlantInfoUpdate, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
+    """Eigenschaften einer bereits besessenen Pflanze im Dashboard bearbeiten"""
+    
+    # Hier suchen wir in MyPlant statt in Wishlist
+    my_plant = db.query(models.MyPlant).filter(
+        models.MyPlant.id == plant_id,
+        models.MyPlant.user_id == user_id
+    ).first()
+
+    if not my_plant:
+        raise HTTPException(status_code=404, detail="Pflanze im Dashboard nicht gefunden")
+
+    plant_info = my_plant.plant_info
+
+    # Die Updates (identisch mit deinem Code)
+    if updates.water_frequency_days is not None:
+        plant_info.water_frequency_days = updates.water_frequency_days
+    if updates.fertilize_frequency_days is not None:
+        plant_info.fertilize_frequency_days = updates.fertilize_frequency_days
+    if updates.sunlight_requirement is not None:
+        plant_info.sunlight_requirement = updates.sunlight_requirement
+    if updates.humidity_requirement is not None:
+        plant_info.humidity_requirement = updates.humidity_requirement
+    if updates.temperature_min is not None:
+        plant_info.temperature_min = updates.temperature_min
+    if updates.temperature_max is not None:
+        plant_info.temperature_max = updates.temperature_max
+    if updates.max_height_cm is not None:
+        plant_info.max_height_cm = updates.max_height_cm
+    if updates.soil_type is not None:
+        plant_info.soil_type = updates.soil_type
+    if updates.is_toxic is not None:
+        plant_info.is_toxic = updates.is_toxic
+
+    db.commit()
+    return {"status": "updated", "plant": plant_info.common_name}
+
 @app.get("/locations/{location_id}/details")
 def get_location_details(
     location_id: int,

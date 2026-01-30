@@ -959,8 +959,11 @@
         // Speicherfunktion muss wissen, welchen Pfad sie nimmt
         async function savePlantEdit() {
             const id = document.getElementById('editWishlistId').value;
-            // Wenn Quelle Dashboard, nutzen wir den MyPlant Endpoint
-            const url = `${API_URL}/wishlist/${id}/plant-info`;
+
+            // Dynamische URL je nach Quelle
+            const url = editSource === "dashboard"
+                ? `${API_URL}/my-plants/${id}/plant-info`
+                : `${API_URL}/wishlist/${id}/plant-info`;
 
             const payload = {
                 water_frequency_days: parseInt(document.getElementById('editWater').value),
@@ -974,15 +977,23 @@
                 is_toxic: document.getElementById('editToxic').checked
             };
 
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                bootstrap.Modal.getInstance(document.getElementById('editPlantModal')).hide();
-                editSource === "dashboard" ? loadTasks() : loadWishlist();
+                if (response.ok) {
+                    alert('✅ Eigenschaften aktualisiert!');
+                    bootstrap.Modal.getInstance(document.getElementById('editPlantModal')).hide();
+                    // Die richtige Liste neu laden
+                    editSource === "dashboard" ? loadTasks() : loadWishlist();
+                } else {
+                    alert('Fehler beim Speichern (Status: ' + response.status + ')');
+                }
+            } catch (error) {
+                console.error("Speicherfehler:", error);
             }
         }
 
