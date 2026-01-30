@@ -472,6 +472,23 @@
             padding-right: 15px;
             margin-right: 5px;
         }
+
+        .calendar-card {
+            transition: transform 0.2s;
+        }
+
+        .calendar-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .action-btn:hover {
+            background: #16a34a !important;
+            transform: scale(1.05);
+        }
+
+        .hover-bright:hover {
+            background-color: #fafafa !important;
+        }
     </style>
 </head>
 
@@ -1033,8 +1050,35 @@
                     const suitableText = item.suitable_locations.length > 0 ? `✅ Geeignet für: ${item.suitable_locations.join(', ')}` : '⚠️ Nicht ideal';
                     const toxicBadge = item.is_toxic ? '<span class="badge bg-danger">GIFTIG</span>' : '';
                     const safeJson = JSON.stringify(item).replace(/"/g, '&quot;');
-                    container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100 ${item.is_toxic ? 'toxic-warning' : ''}"><img src="${item.image_url || 'https://via.placeholder.com/300'}" class="w-100"><div class="p-3"><div class="d-flex justify-content-between"><div><h5>${item.common_name || item.scientific_name}</h5></div>${toxicBadge}</div><div class="muted small">${item.scientific_name}</div><div class="divider"></div><div class="muted small">☀️ Licht: ${item.sunlight_requirement}/10 • 🌡️ Temp: ${item.temperature_min}-${item.temperature_max}°C</div><div class="mt-2"><span class="chip">${suitableText}</span></div></div><div class="card-footer p-3"><button class="btn btn-sm btn-outline-light w-100 mb-2" onclick="showEditPlantModal(${item.id}, ${safeJson})">Bearbeiten</button><button class="btn btn-sm btn-primary w-100" onclick="removeFromWishlist(${item.id})">Entfernen</button></div></div></div>`;
-                });
+
+                    container.innerHTML += `
+            <div class="col-md-4 mb-4">
+                <div class="plant-card h-100 ${item.is_toxic ? 'toxic-warning' : ''}">
+                    <img src="${item.image_url || 'https://via.placeholder.com/300'}" class="w-100" style="height:200px; object-fit:cover;">
+                    <div class="p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="mb-0">${item.common_name || item.scientific_name}</h5>
+                            ${toxicBadge}
+                        </div>
+                        <div class="muted small mb-2">${item.scientific_name}</div>
+                        <div class="divider"></div>
+                        
+                        <div class="muted small">
+                            ☀️ Licht: ${item.sunlight_requirement}/10 • 💧 Feuchtigkeit: ${item.humidity_requirement}/10<br>
+                            🌡️ Temperatur: ${item.temperature_min}-${item.temperature_max}°C<br>
+                            📏 Max. Höhe: ${item.max_height_cm}cm • 🌱 Boden: ${item.soil_type}<br>
+                            💧 Gießen: alle ${item.water_frequency_days} Tage
+                        </div>
+
+                        <div class="mt-2"><span class="chip">${suitableText}</span></div>
+                    </div>
+                    <div class="card-footer p-3">
+                        <button class="btn btn-sm btn-outline-light w-100 mb-2" onclick="showEditPlantModal(${item.id}, ${safeJson})">Bearbeiten</button>
+                        <button class="btn btn-sm btn-primary w-100" onclick="removeFromWishlist(${item.id})">Entfernen</button>
+                    </div>
+                </div>
+            </div>`;
+                })
             } catch (e) { console.error(e); }
         }
 
@@ -1069,8 +1113,8 @@
                 const detailRes = await Promise.all(locs.map(l => fetch(`${API_URL}/locations/${l.id}/details`).then(r => r.json())));
                 locs.forEach((l, idx) => {
                     const data = detailRes[idx];
-                    const pets = l.has_pets_or_children ? '<span class="badge bg-warning text-dark">Haustiere/Kinder</span>' : '';
-                    container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100"><div class="p-3"><h5>${l.name} ${pets}</h5><div class="d-flex gap-2 flex-wrap mb-3"><span class="chip">Vorhanden: ${data.actual_plants.length}</span><span class="chip">Wishlist passend: ${data.compatible_wishlist_plants.length}</span></div><div class="muted small">☀️ Licht: ${l.light_level}/10 • 💧 Feuchtigkeit: ${l.humidity_level}/10<br>🌡️ Temperatur: ${l.temperature_avg}°C • 📏 Platz: ${l.available_space_cm}cm</div><div class="divider"></div><button class="btn btn-outline-light w-100" onclick="showLocationDetails(${l.id})">Details anzeigen</button></div></div></div>`;
+                    const pets = l.has_pets_or_children ? '<span class="badge bg-warning text-dark">Haustiere/Kinder</span>' : ''; ss =
+                        container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100"><div cla"p-3"><h5>${l.name} ${pets}</h5><div class="d-flex gap-2 flex-wrap mb-3"><span class="chip">Vorhanden: ${data.actual_plants.length}</span><span class="chip">Wishlist passend: ${data.compatible_wishlist_plants.length}</span></div><div class="muted small">☀️ Licht: ${l.light_level}/10 • 💧 Feuchtigkeit: ${l.humidity_level}/10<br>🌡️ Temperatur: ${l.temperature_avg}°C • 📏 Platz: ${l.available_space_cm}cm</div><div class="divider"></div><button class="btn btn-outline-light w-100" onclick="showLocationDetails(${l.id})">Details anzeigen</button></div></div></div>`;
                 });
             } catch (e) { console.error(e); }
         }
@@ -1137,34 +1181,78 @@
             const wishId = document.getElementById('wishlistSelect').value;
             const locationId = document.getElementById('locationSelect').value;
             const nickname = document.getElementById('plantNickname').value;
-            if (!locationId || !wishId) { alert("Bitte Standort und Pflanze wählen."); return; }
-            const payload = { nickname: nickname || "Pflanze", location_id: parseInt(locationId), wishlist_id: parseInt(wishId) };
+
+            if (!locationId || !wishId) {
+                alert("Bitte Standort und Pflanze wählen.");
+                return;
+            }
+
+            // Das Payload-Objekt muss EXAKT zu deiner MyPlantCreate Klasse im Backend passen
+            const payload = {
+                nickname: nickname || "Meine Pflanze",
+                location_id: parseInt(locationId),
+                wishlist_id: parseInt(wishId)
+            };
+
             try {
-                const res = await fetch(`${API_URL}/my-plants/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (res.ok) { alert('✅ Pflanze eingezogen!'); bootstrap.Modal.getInstance(document.getElementById('addPlantModal')).hide(); loadTasks(); }
-            } catch (error) { console.error(error); }
+                const response = await fetch(`${API_URL}/my-plants/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('✅ Pflanze erfolgreich eingezogen!');
+                    // Modal schließen
+                    bootstrap.Modal.getInstance(document.getElementById('addPlantModal')).hide();
+                    // Dashboard und Wunschliste neu laden
+                    loadTasks();
+                    if (typeof loadWishlist === 'function') loadWishlist();
+                } else {
+                    const err = await response.json();
+                    alert('Fehler: ' + (err.detail || 'Konnte Pflanze nicht hinzufügen'));
+                }
+            } catch (error) {
+                console.error("Add Plant Error:", error);
+                alert("Verbindung zum Server fehlgeschlagen.");
+            }
         }
 
         // ---------- KALENDER ----------
         async function loadCalendar(days = 14) {
             const container = document.getElementById('calendar-container');
             if (!container) return;
-            const taskIcons = { 'water': '<img src="img/icons/water.png" class="plant-icon">', 'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon">', 'repot': '<img src="img/icons/pot.png" class="plant-icon">', 'prune': '<img src="img/icons/scissors.png" class="plant-icon">', 'propagate': '<img src="img/icons/multiply.png" class="plant-icon">' };
+
+            // UI Config
+            const taskIcons = {
+                'water': '<img src="img/icons/water.png" class="plant-icon" style="width:20px; height:20px;">',
+                'fertilize': '<img src="img/icons/fertilize.png" class="plant-icon" style="width:20px; height:20px;">',
+                'repot': '<img src="img/icons/pot.png" class="plant-icon" style="width:20px; height:20px;">',
+                'prune': '<img src="img/icons/scissors.png" class="plant-icon" style="width:20px; height:20px;">',
+                'propagate': '<img src="img/icons/multiply.png" class="plant-icon" style="width:20px; height:20px;">'
+            };
             const taskNames = { water: 'Gießen', fertilize: 'Düngen', repot: 'Umtopfen', prune: 'Schneiden', propagate: 'Vermehren' };
+
+            container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 muted">Synchronisiere Zeitplan...</p></div>';
+
             try {
                 const res = await fetch(`${API_URL}/dashboard/tasks`);
                 const plants = await res.json();
                 const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
                 const items = [];
                 plants.forEach(p => {
                     [['water', 'days_until_watering'], ['fertilize', 'days_until_fertilizing'], ['repot', 'days_until_repotting'], ['prune', 'days_until_pruning'], ['propagate', 'days_until_propagating']].forEach(([type, field]) => {
                         const d = p[field];
                         if (d !== undefined && d !== null && d <= days) {
-                            const due = new Date(today); due.setDate(today.getDate() + d);
+                            const due = new Date(today);
+                            due.setDate(today.getDate() + d);
                             items.push({ due, daysUntil: d, type, plant: p.plant, plantId: p.id, location: p.location });
                         }
                     });
                 });
+
                 items.sort((a, b) => a.due - b.due);
                 const groups = {};
                 items.forEach(it => {
@@ -1172,18 +1260,70 @@
                     if (!groups[k]) groups[k] = { date: it.due, items: [] };
                     groups[k].items.push(it);
                 });
+
                 let html = "";
                 Object.keys(groups).sort().forEach(k => {
                     const g = groups[k];
-                    const headerClass = g.items[0].daysUntil < 0 ? 'bg-danger text-white' : (g.items[0].daysUntil === 0 ? 'bg-light' : '');
-                    const fmt = g.date.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' });
-                    const dayLabel = g.items[0].daysUntil < 0 ? '<span class="text-danger">⚠️ Überfällig</span>' : (g.items[0].daysUntil === 0 ? '<span class="text-primary">Heute</span>' : '');
-                    html += `<div class="plant-card mb-3"><div class="card-header ${headerClass}"><strong>${dayLabel ? dayLabel + ' • ' : ''}${fmt}</strong></div><ul class="list-group list-group-flush">`;
-                    g.items.forEach(it => { html += `<li class="list-group-item d-flex justify-content-between align-items-center"><div><div class="fw-bold">${taskIcons[it.type]} ${taskNames[it.type]} - ${it.plant}</div><div class="muted small">📍 ${it.location}</div></div><button class="btn btn-sm btn-outline-success" onclick="performTask(${it.plantId}, '${it.type}', '✅', 'Ok')">Ok</button></li>`; });
+                    const diff = g.items[0].daysUntil;
+
+                    // --- PROFESSIONAL COLOR SCORING ---
+                    let headerStyle = "background: #f8f9fa; color: #333; border-left: 5px solid #dee2e6;";
+                    let statusLabel = "";
+
+                    if (diff < 0) {
+                        headerStyle = "background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%); color: #dc3545; border-left: 5px solid #dc3545;";
+                        statusLabel = '<span class="badge rounded-pill bg-danger me-2 shadow-sm">KRITISCH</span>';
+                    } else if (diff === 0) {
+                        headerStyle = "background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%); color: #0d6efd; border-left: 5px solid #0d6efd;";
+                        statusLabel = '<span class="badge rounded-pill bg-primary me-2 shadow-sm">HEUTE</span>';
+                    } else if (diff === 1) {
+                        headerStyle = "background: #ffffff; color: #666; border-left: 5px solid #6c757d;";
+                        statusLabel = '<span class="badge rounded-pill bg-secondary me-2">MORGEN</span>';
+                    }
+
+                    const fmtDay = g.date.toLocaleDateString('de-DE', { weekday: 'long' });
+                    const fmtDate = g.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' });
+
+                    html += `
+            <div class="calendar-card mb-4 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #eee;">
+                <div class="card-header d-flex align-items-center py-3" style="${headerStyle}">
+                    ${statusLabel}
+                    <strong style="letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.85rem;">
+                        ${fmtDay}, <span style="font-weight: 400;">${fmtDate}</span>
+                    </strong>
+                </div>
+                <ul class="list-group list-group-flush">`;
+
+                    g.items.forEach(it => {
+                        html += `
+                <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 bg-white hover-bright">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box me-3 p-2 shadow-sm" style="background: #f8f9fa; border-radius: 8px;">
+                            ${taskIcons[it.type]}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 1rem;">${taskNames[it.type]}</div>
+                            <div class="text-muted small">
+                                <span class="text-primary fw-medium">${it.plant}</span> 
+                                <span class="mx-1">•</span> 
+                                <i class="bi bi-geo-alt"></i> ${it.location}
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm action-btn" 
+                            onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')"
+                            style="transition: all 0.2s; border: none; background: #22c55e;">
+                        DONE
+                    </button>
+                </li>`;
+                    });
                     html += '</ul></div>';
                 });
-                container.innerHTML = html || 'Keine Aufgaben.';
-            } catch (e) { console.error(e); }
+                container.innerHTML = html || '<div class="text-center p-5 bg-light rounded-4 border border-dashed">🎉 <p class="mt-2 text-muted">System-Status: Alle Pflanzen optimal versorgt.</p></div>';
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = '<div class="alert alert-danger">Fehler beim API-Request an den Kalender-Dienst.</div>';
+            }
         }
 
         // ---------- AUTH ----------

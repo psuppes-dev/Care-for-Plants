@@ -10,6 +10,7 @@ from database import SessionLocal
 from models import User
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from datetime import datetime
 
 # Eigene Module
 import models, database
@@ -77,7 +78,7 @@ class WishlistCreate(BaseModel):
 class MyPlantCreate(BaseModel):
     nickname: str
     location_id: int
-    trefle_id: int
+    wishlist_id: int
     
 class LocationCreate(BaseModel):
     name: str
@@ -130,53 +131,32 @@ def get_locations(user_id: int = Depends(require_login),db: Session = Depends(ge
     return db.query(models.Location).filter(models.Location.user_id == user_id).all()
 
 @app.post("/my-plants/")
-def create_my_plant(payload: MyPlantCreate,user_id: int = Depends(require_login),db: Session = Depends(get_db)):
-    # 0) Safety: Standort muss dem User gehören
+def create_my_plant(payload: MyPlantCreate, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
+    # 0) Safety: Gehört der gewählte Standort wirklich dem aktuellen User?
     location = db.query(models.Location).filter(
         models.Location.id == payload.location_id,
         models.Location.user_id == user_id
     ).first()
     if not location:
-        raise HTTPException(status_code=404, detail="Standort nicht gefunden oder gehört nicht zum User")
+        raise HTTPException(status_code=404, detail="Standort nicht gefunden oder Zugriff verweigert")
 
-    # 1) PlantInfo (global/shared) prüfen ob lokal vorhanden
-    db_info = db.query(models.PlantInfo).filter(
-        models.PlantInfo.trefle_id == payload.trefle_id
+    # 1) Den Wunschlisten-Eintrag des Users finden
+    # Wir nutzen wishlist_id, um direkt auf deine bearbeiteten Daten zuzugreifen
+    wish_item = db.query(models.Wishlist).filter(
+        models.Wishlist.id == payload.wishlist_id,
+        models.Wishlist.user_id == user_id
     ).first()
+    
+    if not wish_item:
+        raise HTTPException(status_code=404, detail="Pflanze nicht in deiner Wunschliste gefunden")
 
-    if not db_info:
-        # 2) Importieren von Trefle
-        details = trefle_service.get_plant_details(payload.trefle_id)
-        if not details:
-            raise HTTPException(status_code=404, detail="Pflanze bei Trefle nicht gefunden")
-
-        db_info = models.PlantInfo(
-            trefle_id=payload.trefle_id,
-            scientific_name=details["scientific_name"],
-            common_name=details["common_name"],
-            image_url=details["image_url"],
-            water_frequency_days=details["water_frequency_days"],
-            fertilize_frequency_days=details["fertilize_frequency_days"],
-            repot_frequency_days=details["repot_frequency_days"],
-            prune_frequency_days=details["prune_frequency_days"],
-            sunlight_requirement=details["sunlight_requirement"],
-            humidity_requirement=details["humidity_requirement"],
-            temperature_min=details["temperature_min"],
-            temperature_max=details["temperature_max"],
-            max_height_cm=details["max_height_cm"],
-            soil_type=details["soil_type"],
-            is_toxic=details["is_toxic"]
-        )
-        db.add(db_info)
-        db.commit()
-        db.refresh(db_info)
-
-    # 3) User-Pflanze anlegen (user_id setzen!)
+    # 2) Neue Pflanze im Dashboard anlegen
+    # Wir nehmen die plant_info_id direkt aus dem Wunschlisten-Eintrag!
     new_plant = models.MyPlant(
-        user_id=user_id,                   # ⭐ WICHTIG
+        user_id=user_id,
         nickname=payload.nickname,
         location_id=payload.location_id,
-        plant_info_id=db_info.id,
+        plant_info_id=wish_item.plant_info_id, # Hier stecken deine manuellen Änderungen drin!
         last_watered=date.today(),
         last_fertilized=date.today(),
         last_repotted=date.today(),
@@ -188,6 +168,10 @@ def create_my_plant(payload: MyPlantCreate,user_id: int = Depends(require_login)
     db.add(new_plant)
     db.commit()
     db.refresh(new_plant)
+
+    # 3) Optional: Den Eintrag aus der Wunschliste löschen, da die Pflanze nun "eingezogen" ist
+    db.delete(wish_item)
+    db.commit()
 
     return {"status": "created", "plant": new_plant.nickname, "id": new_plant.id}
 
@@ -684,12 +668,14 @@ class MovePlantRequest(BaseModel):
     location_id: int
 
 @app.put("/my-plants/{plant_id}/move")
-def move_my_plant(plant_id: int, body: MovePlantRequest, db: Session = Depends(get_db)):
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
+def move_my_plant(plant_id: int, body: MovePlantRequest, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
+    # Pflanze muss dem User gehören
+    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id, models.MyPlant.user_id == user_id).first()
     if not plant:
         raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
 
-    loc = db.query(models.Location).filter(models.Location.id == body.location_id).first()
+    # Neuer Standort muss dem User gehören
+    loc = db.query(models.Location).filter(models.Location.id == body.location_id, models.Location.user_id == user_id).first()
     if not loc:
         raise HTTPException(status_code=404, detail="Standort nicht gefunden")
 
@@ -698,13 +684,24 @@ def move_my_plant(plant_id: int, body: MovePlantRequest, db: Session = Depends(g
     return {"status": "ok", "plant_id": plant_id, "new_location_id": body.location_id}
 
 @app.get("/my-plants/{plant_id}/recommended-locations")
-def get_recommended_locations_for_myplant(plant_id: int, db: Session = Depends(get_db)):
-    plant = db.query(models.MyPlant).filter(models.MyPlant.id == plant_id).first()
+def get_recommended_locations_for_myplant(
+    plant_id: int, 
+    user_id: int = Depends(require_login), # 1. User ID per Dependency holen
+    db: Session = Depends(get_db)
+):
+    # 2. Pflanze holen und sicherstellen, dass sie dem aktuellen User gehört
+    plant = db.query(models.MyPlant).filter(
+        models.MyPlant.id == plant_id, 
+        models.MyPlant.user_id == user_id
+    ).first()
+    
     if not plant:
-        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden")
+        raise HTTPException(status_code=404, detail="Pflanze nicht gefunden oder Zugriff verweigert")
 
     pi = plant.plant_info
-    locations = db.query(models.Location).all()
+    
+    # 3. NUR die Standorte des aktuellen Users abfragen!
+    locations = db.query(models.Location).filter(models.Location.user_id == user_id).all()
 
     result = []
     for loc in locations:
@@ -714,7 +711,7 @@ def get_recommended_locations_for_myplant(plant_id: int, db: Session = Depends(g
         if abs(pi.sunlight_requirement - loc.light_level) > 2:
             ok = False
             reasons.append("Licht passt nicht")
-
+        
         if abs(pi.humidity_requirement - loc.humidity_level) > 2:
             ok = False
             reasons.append("Feuchtigkeit passt nicht")
@@ -738,7 +735,6 @@ def get_recommended_locations_for_myplant(plant_id: int, db: Session = Depends(g
             "reasons": reasons
         })
 
-    # Empfohlen oben
     result.sort(key=lambda x: (not x["recommended"], x["name"].lower()))
     return result
 
@@ -761,7 +757,6 @@ app.mount(
     name="static"
 )
 
-from datetime import datetime
 
 @app.post("/my-plants/{plant_id}/propagate")
 def propagate_plant(plant_id: int, count: int = 1, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
@@ -787,3 +782,5 @@ def propagate_plant(plant_id: int, count: int = 1, user_id: int = Depends(requir
             last_fertilized=datetime.now()
         )
         db.add(new_baby)
+        db.commit()
+        return {"status": "success", "message": f"{count} Ableger erstellt"}
