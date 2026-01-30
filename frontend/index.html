@@ -464,6 +464,14 @@
             /* Weniger Polsterung */
             line-height: 1;
         }
+
+        #userNameDisplay {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            padding-right: 15px;
+            margin-right: 5px;
+        }
     </style>
 </head>
 
@@ -494,9 +502,12 @@
                 <span class="brand-dot"></span>
                 Care for Plants
             </a>
-            <button id="logoutBtn" class="btn btn-sm btn-outline-light" onclick="logout()" style="display:none;">
-                Abmelden
-            </button>
+            <div class="d-flex align-items-center gap-3">
+                <span id="userNameDisplay" class="text-white-50 small d-none"></span>
+                <button id="logoutBtn" class="btn btn-sm btn-outline-danger" onclick="logout()" style="display:none;">
+                    Abmelden
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1582,6 +1593,7 @@
         async function openMovePlantModal(plantId) {
             document.getElementById('move-plant-id').value = plantId;
 
+            // Holt die botanische Prüfung vom Backend
             const res = await fetch(`${API_URL}/my-plants/${plantId}/recommended-locations`);
             const locations = await res.json();
             moveRecommendations = locations;
@@ -1590,18 +1602,19 @@
             sel.innerHTML = '';
 
             const good = document.createElement('optgroup');
-            good.label = '✅ Empfohlen';
+            good.label = '✅ Empfohlen (Optimale Bedingungen)';
 
             const other = document.createElement('optgroup');
-            other.label = '⚠️ Möglich, aber nicht ideal';
+            other.label = '⚠️ Nicht ideal (Warnung beachten)';
 
             locations.forEach(l => {
                 const opt = document.createElement('option');
                 opt.value = l.id;
 
+                // Zeigt im Dropdown an, warum es nicht passt (z.B. "Licht passt nicht")
                 opt.textContent = l.recommended
                     ? l.name
-                    : `${l.name} – ${l.reasons.join(", ")}`;
+                    : `${l.name} (${l.reasons.join(", ")})`;
 
                 (l.recommended ? good : other).appendChild(opt);
             });
@@ -1609,6 +1622,7 @@
             if (good.children.length) sel.appendChild(good);
             if (other.children.length) sel.appendChild(other);
 
+            // Setzt den Standardwert auf die erste empfohlene Option
             if (good.children.length) {
                 sel.value = good.children[0].value;
             } else if (other.children.length) {
@@ -1659,7 +1673,38 @@
             await loadTasks();
         }
 
-        // Login
+        // Check beim Start: Prüft Session und zeigt den Namen an
+        async function checkAuth() {
+            try {
+                const res = await fetch("/auth/me", { credentials: "include" });
+                const logoutBtn = document.getElementById("logoutBtn");
+                const loginOverlay = document.getElementById("loginOverlay");
+                const nameDisplay = document.getElementById("userNameDisplay");
+
+                if (res.status === 401) {
+                    loginOverlay.style.display = "flex";
+                    logoutBtn.style.display = "none";
+                    if (nameDisplay) nameDisplay.classList.add("d-none");
+                    return;
+                }
+
+                const userData = await res.json(); // Holt {id, username}
+                loginOverlay.style.display = "none";
+                logoutBtn.style.display = "block";
+
+                // Name in der Topbar setzen
+                if (nameDisplay) {
+                    nameDisplay.innerText = `Hallo, ${userData.username}`;
+                    nameDisplay.classList.remove("d-none");
+                }
+
+                loadTasks();
+            } catch (e) {
+                console.error("Auth-Fehler:", e);
+            }
+        }
+
+        // Login: Ruft checkAuth auf, um alles zu initialisieren
         async function login() {
             const form = new FormData();
             form.append("username", document.getElementById("loginUser").value);
@@ -1668,29 +1713,14 @@
             const res = await fetch("/auth/login", {
                 method: "POST",
                 body: form,
-                credentials: "include" // Wichtig, damit das Session-Cookie gesetzt wird
+                credentials: "include"
             });
 
             if (res.ok) {
-                document.getElementById("loginOverlay").style.display = "none";
-                document.getElementById("logoutBtn").style.display = "block"; // Button anzeigen
-                loadTasks();
+                checkAuth(); // Lädt Namen und Dashboard automatisch
             } else {
                 alert("Login fehlgeschlagen");
             }
-        }
-
-        // Check beim Start
-        async function checkAuth() {
-            const res = await fetch("/auth/me", { credentials: "include" }); // Prüft Cookie
-            if (res.status === 401) {
-                document.getElementById("loginOverlay").style.display = "flex";
-                document.getElementById("logoutBtn").style.display = "none"; // Button verstecken
-                return;
-            }
-            document.getElementById("loginOverlay").style.display = "none";
-            document.getElementById("logoutBtn").style.display = "block"; // Button anzeigen
-            loadTasks();
         }
 
         // Logout 
