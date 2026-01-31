@@ -1153,20 +1153,86 @@
                 const data = await response.json();
                 document.getElementById('locationDetailTitle').textContent = data.location.name;
 
-                let html = '<h5 class="mb-3">Vorhandene Pflanzen</h5><div class="row g-3 mb-4">';
-                data.actual_plants.forEach(p => { html += `<div class="col-md-3"><div class="plant-card"><img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 120px; object-fit: cover;"><div class="p-2"><div class="fw-bold">${p.nickname}</div><div class="muted small">${p.species}</div></div></div></div>`; });
+                // --- Vorhandene Pflanzen ---
+                let html = '<h5 class="mb-3 text-white">Vorhandene Pflanzen</h5><div class="row g-3 mb-4">';
+                if (data.actual_plants.length === 0) {
+                    html += '<div class="col-12 text-muted small italic">Keine Pflanzen an diesem Standort.</div>';
+                } else {
+                    data.actual_plants.forEach(p => {
+                        html += `
+                        <div class="col-md-3">
+                            <div class="plant-card" style="background: rgba(255,255,255,0.03); border: 1px solid #ffffff10;">
+                                <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 100px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                                <div class="p-2">
+                                    <div class="fw-bold text-white small">${p.nickname}</div>
+                                    <div class="muted extra-small">${p.species}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
                 html += '</div>';
 
-                html += '<h5 class="mb-3">Passende Pflanzen aus Wunschliste</h5><div class="row g-3">';
+                // --- Passende Wunschliste ---
+                html += '<h5 class="mb-3 text-white">Passende Pflanzen aus deiner Wunschliste</h5><div class="row g-3">';
                 if (data.compatible_wishlist_plants.length === 0) {
-                    html += '<div class="col-12 alert alert-info">Keine passenden Pflanzen gefunden.</div>';
+                    html += '<div class="col-12 alert alert-info bg-dark text-info border-info opacity-75">Keine passenden Pflanzen gefunden.</div>';
                 } else {
-                    data.compatible_wishlist_plants.forEach(p => { html += `<div class="col-md-3"><div class="plant-card" style="border-color: rgba(34,197,94,.25);"><img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 120px; object-fit: cover;"><div class="p-2"><div class="fw-bold">${p.common_name || p.scientific_name}</div><div class="muted small">${p.scientific_name}</div></div></div></div>`; });
+                    data.compatible_wishlist_plants.forEach(p => {
+                        // Hier fügen wir den "EINZIEHEN" Button ein
+                        html += `
+                        <div class="col-md-3">
+                            <div class="plant-card h-100" style="border-color: rgba(34,197,94,.4); background: rgba(0,0,0,0.2);">
+                                <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 100px; object-fit: cover; border-radius: 8px 8px 0 0;">
+                                <div class="p-2">
+                                    <div class="fw-bold text-white small text-truncate">${p.common_name || p.scientific_name}</div>
+                                    <div class="muted extra-small mb-2">${p.scientific_name}</div>
+                                    
+                                    <button class="btn btn-sm btn-success w-100 py-1 action-btn" 
+                                            style="font-size: 0.7rem; letter-spacing: 0.5px;"
+                                            onclick="quickAddFromWishlist(${p.wishlist_id}, ${locationId}, '${p.common_name || p.scientific_name}')">
+                                        EINZIEHEN
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
                 }
                 html += '</div>';
 
                 document.getElementById('locationDetailContent').innerHTML = html;
                 new bootstrap.Modal(document.getElementById('locationDetailModal')).show();
+            } catch (e) { console.error(e); }
+        }
+
+        async function quickAddFromWishlist(wishlistId, locationId, plantName) {
+            if (!confirm(`${plantName} an diesen Standort verschieben?`)) return;
+
+            const payload = {
+                nickname: plantName,
+                location_id: parseInt(locationId),
+                wishlist_id: parseInt(wishlistId)
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/my-plants/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    // Modal schließen
+                    const modalElement = document.getElementById('locationDetailModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) modal.hide();
+
+                    // Alles aktualisieren
+                    await loadLocations(); // Wichtig, um die neue Anzahl im Standort-Tab zu sehen
+                    if (typeof loadTasks === 'function') loadTasks(); // Dashboard aktualisieren
+
+                    alert(`🎉 ${plantName} wurde erfolgreich hinzugefügt!`);
+                }
             } catch (e) { console.error(e); }
         }
 
