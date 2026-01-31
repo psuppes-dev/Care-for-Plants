@@ -473,15 +473,49 @@
             margin-right: 5px;
         }
 
-        .calendar-card { 
-            transition: transform 0.2s ease, box-shadow 0.2s ease; 
+        /* --- CALENDAR STYLES --- */
+        .calendar-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #1e272e;
+            /* Dunkler Hintergrund passend zur Seite */
         }
-        .calendar-card:hover { 
-            transform: translateY(-3px); 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; 
+
+        .calendar-card:hover {
+            transform: translateY(-5px) scale(1.005);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
         }
-        .hover-bright:hover { 
-            background-color: #fcfcfc !important; 
+
+        /* Der "Glow" für die Buttons */
+        .action-btn {
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.08);
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.4) !important;
+        }
+
+        /* Hover-Effekt für die einzelnen Zeilen (Dark Mode kompatibel) */
+        .list-group-item {
+            transition: background-color 0.2s ease;
+        }
+
+        .list-group-item:hover {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        /* Icon-Box Veredelung */
+        .icon-box {
+            transition: transform 0.2s ease;
+        }
+
+        .calendar-card:hover .icon-box {
+            transform: rotate(-5deg) scale(1.1);
         }
     </style>
 </head>
@@ -1260,59 +1294,63 @@
                     const g = groups[k];
                     const diff = g.items[0].daysUntil;
 
-                    // --- COLOR SCORING ---
-                    let headerStyle = "background: #f8f9fa; color: #333; border-left: 5px solid #dee2e6;";
+                    // --- DARK MODE IT-GOTT SCORING ---
+                    let borderColor = "#2d3436"; // Subtiles Anthrazit für Standard
                     let statusLabel = "";
+                    let accentColor = "#b2bec3"; // Sanftes Grau für Text
 
                     if (diff < 0) {
-                        // KRITISCH (Rot)
-                        headerStyle = "background: linear-gradient(90deg, #fff5f5 0%, #ffffff 100%); color: #dc3545; border-left: 5px solid #dc3545;";
-                        statusLabel = '<span class="badge rounded-pill bg-danger me-2 shadow-sm">KRITISCH</span>';
+                        // ÜBERFÄLLIG (Rot - passend zum Dashboard Danger)
+                        borderColor = "#ff4757";
+                        accentColor = "#ff4757";
+                        statusLabel = '<span class="badge rounded-pill bg-danger me-2 shadow-sm" style="letter-spacing:1px;">ÜBERFÄLLIG</span>';
                     } else if (diff === 0) {
-                        // HEUTE (Gelb)
-                        headerStyle = "background: linear-gradient(90deg, #fff9db 0%, #ffffff 100%); color: #856404; border-left: 5px solid #ffc107;";
-                        statusLabel = '<span class="badge rounded-pill bg-warning text-dark me-2 shadow-sm">HEUTE</span>';
+                        // HEUTE (Gelb - exakt wie Dashboard Warning)
+                        borderColor = "#ffa502";
+                        accentColor = "#ffa502";
+                        statusLabel = '<span class="badge rounded-pill bg-warning text-dark me-2 shadow-sm" style="letter-spacing:1px;">HEUTE</span>';
                     } else if (diff === 1) {
-                        // MORGEN (Neutral/Grau)
-                        headerStyle = "background: #ffffff; color: #666; border-left: 5px solid #6c757d;";
-                        statusLabel = '<span class="badge rounded-pill bg-secondary me-2">MORGEN</span>';
+                        // MORGEN (Info-Blau)
+                        borderColor = "#1e90ff";
+                        accentColor = "#1e90ff";
+                        statusLabel = '<span class="badge rounded-pill bg-info text-white me-2 shadow-sm" style="letter-spacing:1px;">MORGEN</span>';
                     }
 
                     const fmtDay = g.date.toLocaleDateString('de-DE', { weekday: 'long' });
                     const fmtDate = g.date.toLocaleDateString('de-DE', { day: '2-digit', month: 'long' });
 
                     html += `
-            <div class="calendar-card mb-4 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #eee;">
-                <div class="card-header d-flex align-items-center py-3" style="${headerStyle}">
-                    ${statusLabel}
-                    <strong style="letter-spacing: 0.5px; text-transform: uppercase; font-size: 0.85rem;">
-                        ${fmtDay}, <span style="font-weight: 400;">${fmtDate}</span>
-                    </strong>
-                </div>
-                <ul class="list-group list-group-flush">`;
+                    <div class="calendar-card mb-4 shadow-lg" style="border-radius: 16px; overflow: hidden; background: #1e272e; border: 1px solid ${borderColor}55; transition: all 0.3s ease;">
+                        <div class="card-header d-flex align-items-center py-3" style="background: rgba(0,0,0,0.25); border-bottom: 1px solid #ffffff05;">
+                            ${statusLabel}
+                            <strong style="letter-spacing: 1.2px; text-transform: uppercase; font-size: 0.85rem; color: ${accentColor};">
+                                ${fmtDay}, <span style="color: #ffffff99; font-weight: 300;">${fmtDate}</span>
+                            </strong>
+                        </div>
+                        <ul class="list-group list-group-flush" style="background: transparent;">`;
 
                     g.items.forEach(it => {
                         html += `
-                <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4 bg-white hover-bright">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-box me-3 p-2 shadow-sm" style="background: #f8f9fa; border-radius: 8px;">
-                            ${taskIcons[it.type]}
-                        </div>
-                        <div>
-                            <div class="fw-bold text-dark" style="font-size: 1rem;">${taskNames[it.type]}</div>
-                            <div class="text-muted small">
-                                <span class="text-primary fw-medium">${it.plant}</span> 
-                                <span class="mx-1">•</span> 
-                                <i class="bi bi-geo-alt"></i> ${it.location}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4" style="background: transparent; border-bottom: 1px solid #ffffff08;">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box me-3 p-2 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid #ffffff10; width: 42px; height: 42px;">
+                                    ${taskIcons[it.type]}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white" style="font-size: 1.05rem; letter-spacing: 0.3px;">${taskNames[it.type]}</div>
+                                    <div class="small" style="color: #ffffff55;">
+                                        <span style="color: #54a0ff; font-weight: 500;">${it.plant}</span> 
+                                        <span class="mx-2" style="opacity: 0.3;">|</span> 
+                                        <i class="bi bi-geo-alt"></i> ${it.location}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm action-btn" 
-                            onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')"
-                            style="transition: all 0.2s; border: none; background: #22c55e;">
-                        DONE
-                    </button>
-                </li>`;
+                            <button class="btn btn-sm rounded-pill px-4 fw-bold action-btn" 
+                                    onclick="performTask(${it.plantId}, '${it.type}', '✅', '${taskNames[it.type]}')"
+                                    style="background: #2ed573; color: white; border: none; box-shadow: 0 4px 12px rgba(46, 213, 115, 0.2); height: 32px; font-size: 0.75rem; letter-spacing: 1px;">
+                                DONE
+                            </button>
+                        </li>`;
                     });
                     html += '</ul></div>';
                 });
