@@ -940,21 +940,21 @@
                         <strong>Nächste Aufgabe:</strong> ${nextTaskIcon} ${nextTaskName}
                       </div>
                     </div>
-                    <div class="card-footer p-2 bg-light">
-                      <div class="d-flex justify-content-between align-items-center">
+                   <div class="card-footer p-2 bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})"><img src="img/icons/water.png" class="btn-icon-img"></button>
-                            <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})"><img src="img/icons/fertilize.png" class="btn-icon-img"></button>
-                            <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})"><img src="img/icons/pot.png" class="btn-icon-img"></button>
-                            <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})"><img src="img/icons/scissors.png" class="btn-icon-img"></button>
-                            <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})"><img src="img/icons/multiply.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-primary" onclick="waterPlant(${task.id})" title="Gießen"><img src="img/icons/water.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-success" onclick="fertilizePlant(${task.id})" title="Düngen"><img src="img/icons/fertilize.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-warning" onclick="repotPlant(${task.id})" title="Umtopfen"><img src="img/icons/pot.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-info" onclick="prunePlant(${task.id})" title="Schneiden"><img src="img/icons/scissors.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-secondary" onclick="propagatePlant(${task.id})" title="Vermehren"><img src="img/icons/multiply.png" class="btn-icon-img"></button>
                         </div>
                         <div class="btn-group ms-1" role="group">
-                            <button class="btn btn-sm btn-outline-info" onclick="showEditModalFromDashboard(${task.id}, ${safeInfo})">⚙️</button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})"><img src="img/icons/swap.png" class="btn-icon-img"></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})"><img src="img/icons/delete.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-outline-info" onclick="showEditModalFromDashboard(${task.id}, ${safeInfo})" title="Eigenschaften">⚙️</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openMovePlantModal(${task.id})" title="Standort wechseln"><img src="img/icons/swap.png" class="btn-icon-img"></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMyPlant(${task.id})" title="Pflanze löschen"><img src="img/icons/delete.png" class="btn-icon-img"></button>
                         </div>
-                      </div>
+                    </div>
                     </div>
                   </div>
                 </div>`;
@@ -1142,7 +1142,7 @@
                 locs.forEach((l, idx) => {
                     const data = detailRes[idx];
                     const pets = l.has_pets_or_children ? '<span class="badge bg-warning text-dark">Haustiere/Kinder</span>' : ''; ss =
-                        container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100"><div cla"p-3"><h5>${l.name} ${pets}</h5><div class="d-flex gap-2 flex-wrap mb-3"><span class="chip">Vorhanden: ${data.actual_plants.length}</span><span class="chip">Wishlist passend: ${data.compatible_wishlist_plants.length}</span></div><div class="muted small">☀️ Licht: ${l.light_level}/10 • 💧 Feuchtigkeit: ${l.humidity_level}/10<br>🌡️ Temperatur: ${l.temperature_avg}°C • 📏 Platz: ${l.available_space_cm}cm</div><div class="divider"></div><button class="btn btn-outline-light w-100" onclick="showLocationDetails(${l.id})">Details anzeigen</button></div></div></div>`;
+                        container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100"><div cla"p-3"><h5 class="text-center fw-bold">${l.name} ${pets}</h5><div class="d-flex gap-2 flex-wrap mb-3"><span class="chip">Vorhanden: ${data.actual_plants.length}</span><span class="chip">Wishlist passend: ${data.compatible_wishlist_plants.length}</span></div><div class="muted small">☀️ Licht: ${l.light_level}/10 • 💧 Feuchtigkeit: ${l.humidity_level}/10<br>🌡️ Temperatur: ${l.temperature_avg}°C • 📏 Platz: ${l.available_space_cm}cm</div><div class="divider"></div><button class="btn btn-outline-light w-100" onclick="showLocationDetails(${l.id})">Details anzeigen</button></div></div></div>`;
                 });
             } catch (e) { console.error(e); }
         }
@@ -1360,18 +1360,18 @@
                     const g = groups[k];
                     const diff = g.items[0].daysUntil;
 
-                    // --- DARK MODE IT-GOTT SCORING ---
-                    let borderColor = "#2d3436"; // Subtiles Anthrazit für Standard
+                    // --- STYLE ---
+                    let borderColor = "#2d3436"; // Subtiles Anthrazit
                     let statusLabel = "";
                     let accentColor = "#b2bec3"; // Sanftes Grau für Text
 
                     if (diff < 0) {
-                        // ÜBERFÄLLIG (Rot - passend zum Dashboard Danger)
+                        // ÜBERFÄLLIG (Rot)
                         borderColor = "#ff4757";
                         accentColor = "#ff4757";
                         statusLabel = '<span class="badge rounded-pill bg-danger me-2 shadow-sm" style="letter-spacing:1px;">ÜBERFÄLLIG</span>';
                     } else if (diff === 0) {
-                        // HEUTE (Gelb - exakt wie Dashboard Warning)
+                        // HEUTE (Gelb - Warning)
                         borderColor = "#ffa502";
                         accentColor = "#ffa502";
                         statusLabel = '<span class="badge rounded-pill bg-warning text-dark me-2 shadow-sm" style="letter-spacing:1px;">HEUTE</span>';
