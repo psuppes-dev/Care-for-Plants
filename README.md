@@ -25,6 +25,9 @@ Zugriff auf das System
 Das Softwaresystem Care for Plants ist als Webanwendung umgesetzt und öffentlich erreichbar. Die Anwendung ist so konzipiert, dass sie
 ohne lokale Installation oder zusätzliche Software direkt über einen gängigen Webbrowser genutzt werden kann.
 
+Der Zugriff erfolgt über folgende URL:
+https://care-for-plants.onrender.com
+
 Technische Voraussetzungen für den Zugriff:
 •	Aktueller Webbrowser (z. B. Chrome, Firefox, Edge)
 •	Internetverbindung
