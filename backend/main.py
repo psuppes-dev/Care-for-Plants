@@ -727,6 +727,51 @@ def get_recommended_locations_for_myplant(
     result.sort(key=lambda x: (not x["recommended"], x["name"].lower()))
     return result
 
+@app.get("/wishlist/{wishlist_id}/recommended-locations")
+def get_recommended_locations_for_wishlist(
+    wishlist_id: int,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    item = db.query(models.Wishlist).filter(
+        models.Wishlist.id == wishlist_id,
+        models.Wishlist.user_id == user_id
+    ).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Wishlist-Item nicht gefunden oder Zugriff verweigert")
+
+    pi = item.plant_info
+
+    # NUR Standorte des aktuellen Users
+    locations = db.query(models.Location).filter(models.Location.user_id == user_id).all()
+
+    result = []
+    for loc in locations:
+        reasons = []
+        ok = True
+
+        if abs(pi.sunlight_requirement - loc.light_level) > 2:
+            ok = False; reasons.append("Licht passt nicht")
+        if abs(pi.humidity_requirement - loc.humidity_level) > 2:
+            ok = False; reasons.append("Feuchtigkeit passt nicht")
+        if loc.temperature_avg < pi.temperature_min or loc.temperature_avg > pi.temperature_max:
+            ok = False; reasons.append("Temperatur passt nicht")
+        if pi.max_height_cm > loc.available_space_cm:
+            ok = False; reasons.append("Zu wenig Platz")
+        if pi.is_toxic and loc.has_pets_or_children:
+            ok = False; reasons.append("Giftig bei Haustieren/Kinder")
+
+        result.append({
+            "id": loc.id,
+            "name": loc.name,
+            "recommended": ok,
+            "reasons": reasons
+        })
+
+    result.sort(key=lambda x: (not x["recommended"], x["name"].lower()))
+    return result
+
 
 from fastapi.responses import FileResponse
 from pathlib import Path

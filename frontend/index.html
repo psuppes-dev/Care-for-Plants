@@ -1239,36 +1239,83 @@
         // ---------- PFLANZE HINZUFÜGEN (FIXED) ----------
         async function showAddPlantModal() {
             try {
-                const [wishRes, locRes] = await Promise.all([fetch(`${API_URL}/wishlist/`, { credentials: "include" }), fetch(`${API_URL}/locations/`, { credentials: "include" })]);
+                const wishRes = await fetch(`${API_URL}/wishlist/`, { credentials: "include" });
                 const wishlist = await wishRes.json();
-                const locations = await locRes.json();
-                const wishSelect = document.getElementById('wishlistSelect');
-                const locSelect = document.getElementById('locationSelect');
+
+                const wishSelect = document.getElementById("wishlistSelect");
+                const locSelect = document.getElementById("locationSelect");
+
                 wishSelect.innerHTML = "";
-                if (wishlist.length === 0) { alert("Wunschliste ist leer."); return; }
+                locSelect.innerHTML = "";
+
+                if (!Array.isArray(wishlist) || wishlist.length === 0) {
+                    alert("Wunschliste ist leer.");
+                    return;
+                }
+
+                // Wishlist Dropdown füllen
                 wishlist.forEach(item => {
-                    const opt = document.createElement('option'); opt.value = item.id;
-                    opt.dataset.suitable = JSON.stringify(item.suitable_locations);
-                    opt.text = item.common_name ? `${item.common_name} (${item.scientific_name})` : item.scientific_name;
+                    const opt = document.createElement("option");
+                    opt.value = item.id;
+                    opt.text = item.common_name
+                        ? `${item.common_name} (${item.scientific_name})`
+                        : item.scientific_name;
                     wishSelect.appendChild(opt);
                 });
-                const updateLocDropdown = () => {
-                    const suitableNames = JSON.parse(wishSelect.options[wishSelect.selectedIndex].dataset.suitable || "[]");
+
+                // Standort-Dropdown mit Gründen laden
+                const updateLocDropdown = async () => {
+                    const wishlistId = wishSelect.value;
                     locSelect.innerHTML = "";
-                    const good = document.createElement('optgroup'); good.label = '✅ Empfohlen';
-                    const other = document.createElement('optgroup'); other.label = '⚠️ Nicht ideal';
-                    locations.forEach(loc => {
-                        const opt = document.createElement('option'); opt.value = loc.id;
-                        const isSuitable = suitableNames.includes(loc.name);
-                        opt.text = isSuitable ? loc.name : `${loc.name} (abweichend)`;
-                        (isSuitable ? good : other).appendChild(opt);
+                    locSelect.disabled = true;
+
+                    const res = await fetch(`${API_URL}/wishlist/${wishlistId}/recommended-locations`, {
+                        credentials: "include"
                     });
+
+                    if (!res.ok) {
+                        console.error(await res.text());
+                        alert("Standorte konnten nicht geladen werden.");
+                        locSelect.disabled = false;
+                        return;
+                    }
+
+                    const locs = await res.json();
+
+                    const good = document.createElement("optgroup");
+                    good.label = "✅ Empfohlen";
+                    const other = document.createElement("optgroup");
+                    other.label = "⚠️ Nicht ideal";
+
+                    locs.forEach(l => {
+                        const opt = document.createElement("option");
+                        opt.value = l.id;
+
+                        if (l.recommended) {
+                            opt.text = l.name;
+                            good.appendChild(opt);
+                        } else {
+                            const reasons = (Array.isArray(l.reasons) && l.reasons.length)
+                                ? ` (${l.reasons.join(", ")})`
+                                : " (abweichend)";
+                            opt.text = `${l.name}${reasons}`;
+                            other.appendChild(opt);
+                        }
+                    });
+
                     if (good.children.length) locSelect.appendChild(good);
                     if (other.children.length) locSelect.appendChild(other);
+
+                    locSelect.disabled = false;
                 };
-                wishSelect.onchange = updateLocDropdown; updateLocDropdown();
-                new bootstrap.Modal(document.getElementById('addPlantModal')).show();
-            } catch (error) { console.error(error); }
+
+                wishSelect.onchange = updateLocDropdown;
+                await updateLocDropdown();
+
+                new bootstrap.Modal(document.getElementById("addPlantModal")).show();
+            } catch (error) {
+                console.error(error);
+            }
         }
 
         async function addPlantFromWishlist() {
