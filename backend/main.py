@@ -67,7 +67,6 @@ def get_db():
         db.close()
 
 # --- Pydantic Schemas ---
-# WICHTIG: Wir nutzen hier keine komplexen typing-Imports mehr
 class LocationCreate(BaseModel):
     name: str
     light_level: int = 5
@@ -94,6 +93,9 @@ class WishlistCreate(BaseModel):
 class PlantInfoUpdate(BaseModel):
     water_frequency_days: int = None
     fertilize_frequency_days: int = None
+    repot_frequency_days: int = None
+    prune_frequency_days: int = None
+    propagate_frequency_days: int = None
     sunlight_requirement: int = None
     humidity_requirement: int = None
     temperature_min: int = None
@@ -327,6 +329,12 @@ def update_plant_info(item_id: int,updates: PlantInfoUpdate,user_id: int = Depen
         plant_info.water_frequency_days = updates.water_frequency_days
     if updates.fertilize_frequency_days is not None:
         plant_info.fertilize_frequency_days = updates.fertilize_frequency_days
+    if updates.repot_frequency_days is not None:
+        plant_info.repot_frequency_days = updates.repot_frequency_days
+    if updates.prune_frequency_days is not None:
+        plant_info.prune_frequency_days = updates.prune_frequency_days
+    if updates.propagate_frequency_days is not None:
+        plant_info.propagate_frequency_days = updates.propagate_frequency_days    
     if updates.sunlight_requirement is not None:
         plant_info.sunlight_requirement = updates.sunlight_requirement
     if updates.humidity_requirement is not None:
@@ -365,6 +373,12 @@ def update_my_plant_info(plant_id: int, updates: PlantInfoUpdate, user_id: int =
         plant_info.water_frequency_days = updates.water_frequency_days
     if updates.fertilize_frequency_days is not None:
         plant_info.fertilize_frequency_days = updates.fertilize_frequency_days
+    if updates.repot_frequency_days is not None:
+        plant_info.repot_frequency_days = updates.repot_frequency_days
+    if updates.prune_frequency_days is not None:
+        plant_info.prune_frequency_days = updates.prune_frequency_days
+    if updates.propagate_frequency_days is not None:
+        plant_info.propagate_frequency_days = updates.propagate_frequency_days    
     if updates.sunlight_requirement is not None:
         plant_info.sunlight_requirement = updates.sunlight_requirement
     if updates.humidity_requirement is not None:
