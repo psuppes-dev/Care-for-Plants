@@ -10,7 +10,7 @@ from database import SessionLocal
 from models import User
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from datetime import datetime
+from datetime import date
 
 # Eigene Module
 import models, database
@@ -607,18 +607,6 @@ def prune_plant(
     return {"status": "success", "plant": plant.nickname, "pruned_on": str(date.today())}
 
 
-@app.post("/my-plants/{plant_id}/propagate")
-def propagate_plant(
-    plant_id: int,
-    user_id: int = Depends(require_login),
-    db: Session = Depends(get_db)
-):
-    """Markiert eine Pflanze als vermehrt (pro User)"""
-    plant = get_user_plant(db, plant_id, user_id)
-    plant.last_propagated = date.today()
-    db.commit()
-    return {"status": "success", "plant": plant.nickname, "propagated_on": str(date.today())}
-
 from datetime import timedelta
 
 @app.post("/admin/my-plants/{plant_id}/simulate/{days}")
@@ -759,29 +747,59 @@ app.mount(
 )
 
 
+
 @app.post("/my-plants/{plant_id}/propagate")
-def propagate_plant(plant_id: int, count: int = 1, user_id: int = Depends(require_login), db: Session = Depends(get_db)):
-    """Erstellt X Ableger einer Pflanze am selben Standort"""
-    
-    # 1. Mutterpflanze finden
+def propagate_plant(
+    plant_id: int,
+    count: int = 1,
+    user_id: int = Depends(require_login),
+    db: Session = Depends(get_db)
+):
+    """Erstellt X Ableger einer Pflanze am selben Standort + aktualisiert last_propagated"""
+
+    # Guardrails
+    if count < 1:
+        raise HTTPException(status_code=400, detail="count muss >= 1 sein")
+    if count > 10:
+        raise HTTPException(status_code=400, detail="count zu groß (max 10)")
+
+    # 1) Mutterpflanze finden
     mother = db.query(models.MyPlant).filter(
-        models.MyPlant.id == plant_id, 
+        models.MyPlant.id == plant_id,
         models.MyPlant.user_id == user_id
     ).first()
-    
     if not mother:
         raise HTTPException(status_code=404, detail="Mutterpflanze nicht gefunden")
 
-    # 2. X Ableger in die Datenbank schreiben
+    # 2) Mutterpflanze als vermehrt markieren (Pflege-Logik)
+    mother.last_propagated = date.today()
+
+    # 3) Ableger anlegen
+    created_ids = []
     for i in range(count):
-        new_baby = models.MyPlant(
-            nickname=f"Ableger von {mother.nickname} #{i+1}",
-            plant_info_id=mother.plant_info_id,  # Gleiche botanische Info
-            location_id=mother.location_id,      # Gleicher Standort (kann man später verschieben)
+        baby = models.MyPlant(
             user_id=user_id,
-            last_watered=datetime.now(),         # Frisch versorgt beim Einpflanzen
-            last_fertilized=datetime.now()
+            nickname=f"Ableger von {mother.nickname} #{i+1}",
+            plant_info_id=mother.plant_info_id,
+            location_id=mother.location_id,
+            date_acquired=date.today(),
+
+            # Startwerte für Pflege: heute “eingezogen”, also frisch
+            last_watered=date.today(),
+            last_fertilized=date.today(),
+            last_repotted=mother.last_repotted,   # optional: übernehmen oder None
+            last_pruned=mother.last_pruned,       # optional
+            last_propagated=None                  # optional: Ableger selbst noch nicht “vermehrt”
         )
-        db.add(new_baby)
-        db.commit()
-        return {"status": "success", "message": f"{count} Ableger erstellt"}
+        db.add(baby)
+        db.flush()               # damit baby.id sofort da ist
+        created_ids.append(baby.id)
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"{count} Ableger erstellt",
+        "created": count,
+        "ids": created_ids
+    }

@@ -193,12 +193,12 @@ def get_plant_details(trefle_id: int):
             is_palm = has_any(["palm", "palme", "areca", "dypsis", "chamaedorea", "kentia", "howea"])
             is_citrus = has_any(["citrus", "lemon", "zitrone", "orange", "mandarine", "kumquat"])
 
-            # 2) Licht -> grobe Umwelt ableiten (wenn Trefle light vorhanden, nutzt du es eh)
-            # light_req ist bei dir 1-10 (10 = volle Sonne)
+            # 2) Licht -> grobe Umwelt ableiten (wenn Trefle light vorhanden)
+            # light_req ist 1-10 (10 = volle Sonne)
             # Faustregel:
             # - viel Licht -> tendenziell mehr Wasserbedarf oder zumindest öfter prüfen
-            # - wenig Licht -> weniger Wasser (Verdunstung geringer)
-            # - sehr hohe Luftfeuchte-Anforderungen eher bei Schattenpflanzen (Farne etc.)
+            # - wenig Licht -> weniger Wasser
+            # - sehr hohe Luftfeuchte-Anforderungen eher bei Schattenpflanzen
             def light_band(l):
                 if l >= 8: return "high"
                 if l <= 4: return "low"
@@ -207,7 +207,7 @@ def get_plant_details(trefle_id: int):
             lb = light_band(light_req)
 
             # 3) Nur überschreiben, wenn Werte "unsicher" sind (Default oder aus fehlenden Feldern entstanden)
-            # Du kannst die Defaults erkennen: humidity_req==5, temp 15-25, soil_type=="universal", max_height_cm==100 (dein Default)
+            # Defaults erkennen: humidity_req==5, temp 15-25, soil_type=="universal", max_height_cm==100
             is_defaultish = (
                 humidity_req == 5 and
                 temp_min == 15 and temp_max == 25 and
@@ -266,7 +266,6 @@ def get_plant_details(trefle_id: int):
                     temp_min, temp_max = 16, 28
 
                 if is_herb:
-                    # Kräuter mögen oft Sonne und gleichmäßige Feuchte, aber keine Staunässe
                     water_days = 3 if lb == "high" else 5
                     humidity_req = 5
                     soil_type = "universal"
