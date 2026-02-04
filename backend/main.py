@@ -225,7 +225,8 @@ def add_to_wishlist(
     item = models.Wishlist(
         user_id=user_id,
         trefle_id=payload.trefle_id,
-        plant_info_id=db_info.id
+        plant_info_id=db_info.id,
+        added_date=date.today()
     )
     db.add(item)
     db.commit()
