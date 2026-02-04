@@ -1054,12 +1054,7 @@
         async function fertilizePlant(id) { await performTask(id, 'fertilize', '🌱', 'Düngen'); }
         async function repotPlant(id) { await performTask(id, 'repot', '🪴', 'Umtopfen'); }
         async function prunePlant(id) { await performTask(id, 'prune', '✂️', 'Schneiden'); }
-        async function propagatePlant(id) {
-            const count = prompt("Wie viele Ableger?", "1");
-            if (count === null || isNaN(count) || parseInt(count) <= 0) return;
-            const res = await fetch(`${API_URL}/my-plants/${id}/propagate?count=${parseInt(count)}`, { method: 'POST' });
-            if (res.ok) { alert(`🌱 ${count} Ableger erstellt!`); loadTasks(); loadCalendar(); }
-        }
+        async function propagatePlant(id) { await performTask(id, 'propagate', '🌱', 'Vermehren'); }  // Vermehren Button löst wie andere Buttons lediglich "Erledigt!" aus
 
         async function deleteMyPlant(id) {
             if (confirm("Wirklich löschen?")) { await fetch(`${API_URL}/my-plants/${id}`, { method: 'DELETE' }); loadTasks(); }
