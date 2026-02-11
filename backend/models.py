@@ -9,7 +9,8 @@ class PlantInfo(Base):
     __tablename__ = "plant_infos"
     
     id = Column(Integer, primary_key=True, index=True)
-    trefle_id = Column(Integer, unique=True)
+    trefle_id = Column(Integer)
+    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     scientific_name = Column(String)
     common_name = Column(String)
     image_url = Column(String)
@@ -79,7 +80,8 @@ class Wishlist(Base):
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    trefle_id = Column(Integer, unique=True)
+    trefle_id = Column(Integer)
+    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     plant_info_id = Column(Integer, ForeignKey("plant_infos.id"))
     added_date = Column(Date)
     
