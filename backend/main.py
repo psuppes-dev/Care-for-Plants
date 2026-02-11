@@ -67,12 +67,6 @@ def get_db():
         db.close()
 
 # --- Pydantic Schemas ---
-class LocationCreate(BaseModel):
-    name: str
-    light_level: int = 5
-
-class WishlistCreate(BaseModel):
-    trefle_id: int
     
 class MyPlantCreate(BaseModel):
     nickname: str
@@ -103,6 +97,42 @@ class PlantInfoUpdate(BaseModel):
     max_height_cm: int = None
     soil_type: str = None
     is_toxic: bool = None
+    
+def fork_plant_info_for_user(db, base_info, user_id: int):
+    # Prüfen ob User bereits eine Override-Version hat
+    existing = db.query(models.PlantInfo).filter(
+        models.PlantInfo.trefle_id == base_info.trefle_id,
+        models.PlantInfo.owner_user_id == user_id
+    ).first()
+    if existing:
+        return existing
+
+    clone = models.PlantInfo(
+        trefle_id=base_info.trefle_id,
+        scientific_name=base_info.scientific_name,
+        common_name=base_info.common_name,
+        image_url=base_info.image_url,
+
+        water_frequency_days=base_info.water_frequency_days,
+        fertilize_frequency_days=base_info.fertilize_frequency_days,
+        repot_frequency_days=base_info.repot_frequency_days,
+        prune_frequency_days=base_info.prune_frequency_days,
+        propagate_frequency_days=base_info.propagate_frequency_days,
+
+        sunlight_requirement=base_info.sunlight_requirement,
+        humidity_requirement=base_info.humidity_requirement,
+        temperature_min=base_info.temperature_min,
+        temperature_max=base_info.temperature_max,
+        max_height_cm=base_info.max_height_cm,
+        soil_type=base_info.soil_type,
+        is_toxic=base_info.is_toxic,
+
+        owner_user_id=user_id
+    )
+    db.add(clone)
+    db.flush()  # clone.id verfügbar ohne commit
+    return clone
+
 
 # --- API ENDPOINTS ---
 
@@ -324,6 +354,9 @@ def update_plant_info(item_id: int,updates: PlantInfoUpdate,user_id: int = Depen
         raise HTTPException(status_code=404, detail="Nicht gefunden")
 
     plant_info = wishlist_item.plant_info
+    if plant_info.owner_user_id != user_id:
+        plant_info = fork_plant_info_for_user(db, plant_info, user_id)
+        wishlist_item.plant_info_id = plant_info.id
 
     if updates.water_frequency_days is not None:
         plant_info.water_frequency_days = updates.water_frequency_days
@@ -367,6 +400,9 @@ def update_my_plant_info(plant_id: int, updates: PlantInfoUpdate, user_id: int =
         raise HTTPException(status_code=404, detail="Pflanze im Dashboard nicht gefunden")
 
     plant_info = my_plant.plant_info
+    if plant_info.owner_user_id != user_id:
+        plant_info = fork_plant_info_for_user(db, plant_info, user_id)
+        my_plant.plant_info_id = plant_info.id
 
     # Die Updates (identisch mit deinem Code)
     if updates.water_frequency_days is not None:
