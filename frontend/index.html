@@ -1149,79 +1149,220 @@
         }
 
         // ---------- STANDORTE ----------
-        async function loadLocations() {
-            const container = document.getElementById('locations-container');
-            if (!container) return;
-            try {
-                const res = await fetch(`${API_URL}/locations/`);
-                const locs = await res.json();
-                container.innerHTML = "";
-                const detailRes = await Promise.all(locs.map(l => fetch(`${API_URL}/locations/${l.id}/details`).then(r => r.json())));
-                locs.forEach((l, idx) => {
-                    const data = detailRes[idx];
-                    const pets = l.has_pets_or_children ? '<span class="badge bg-warning text-dark">Haustiere/Kinder</span>' : ''; ss =
-                        container.innerHTML += `<div class="col-md-4"><div class="plant-card h-100"><div cla"p-3"><h5 class="text-center fw-bold">${l.name} ${pets}</h5><div class="d-flex gap-2 flex-wrap mb-3"><span class="chip">Vorhanden: ${data.actual_plants.length}</span><span class="chip">Wishlist passend: ${data.compatible_wishlist_plants.length}</span></div><div class="muted small">☀️ Licht: ${l.light_level}/10 • 💧 Feuchtigkeit: ${l.humidity_level}/10<br>🌡️ Temperatur: ${l.temperature_avg}°C • 📏 Platz: ${l.available_space_cm}cm</div><div class="divider"></div><button class="btn btn-outline-light w-100" onclick="showLocationDetails(${l.id})">Details anzeigen</button></div></div></div>`;
-                });
-            } catch (e) { console.error(e); }
+        // ---------- STANDORTE ----------
+async function loadLocations() {
+    const container = document.getElementById('locations-container');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${API_URL}/locations/`, { credentials: "include" });
+
+        if (!res.ok) {
+            console.error("Locations Error:", await res.text());
+            return;
         }
 
-        async function showLocationDetails(locationId) {
-            try {
-                const response = await fetch(`${API_URL}/locations/${locationId}/details`);
-                const data = await response.json();
-                document.getElementById('locationDetailTitle').textContent = data.location.name;
+        const locs = await res.json();
+        container.innerHTML = "";
 
-                // --- Vorhandene Pflanzen ---
-                let html = '<h5 class="mb-3 text-white">Vorhandene Pflanzen</h5><div class="row g-3 mb-4">';
-                if (data.actual_plants.length === 0) {
-                    html += '<div class="col-12 text-muted small italic">Keine Pflanzen an diesem Standort.</div>';
-                } else {
-                    data.actual_plants.forEach(p => {
-                        html += `
-                        <div class="col-md-3">
-                            <div class="plant-card" style="background: rgba(255,255,255,0.03); border: 1px solid #ffffff10;">
-                                <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 100px; object-fit: cover; border-radius: 8px 8px 0 0;">
-                                <div class="p-2">
-                                    <div class="fw-bold text-white small">${p.nickname}</div>
-                                    <div class="muted extra-small">${p.species}</div>
-                                </div>
-                            </div>
-                        </div>`;
-                    });
-                }
-                html += '</div>';
-
-                // --- Passende Wunschliste ---
-                html += '<h5 class="mb-3 text-white">Passende Pflanzen aus deiner Wunschliste</h5><div class="row g-3">';
-                if (data.compatible_wishlist_plants.length === 0) {
-                    html += '<div class="col-12 alert alert-info bg-dark text-info border-info opacity-75">Keine passenden Pflanzen gefunden.</div>';
-                } else {
-                    data.compatible_wishlist_plants.forEach(p => {
-                        // Hier fügen wir den "EINZIEHEN" Button ein
-                        html += `
-                        <div class="col-md-3">
-                            <div class="plant-card h-100" style="border-color: rgba(34,197,94,.4); background: rgba(0,0,0,0.2);">
-                                <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-100" style="height: 100px; object-fit: cover; border-radius: 8px 8px 0 0;">
-                                <div class="p-2">
-                                    <div class="fw-bold text-white small text-truncate">${p.common_name || p.scientific_name}</div>
-                                    <div class="muted extra-small mb-2">${p.scientific_name}</div>
-                                    
-                                    <button class="btn btn-sm btn-success w-100 py-1 action-btn" 
-                                            style="font-size: 0.7rem; letter-spacing: 0.5px;"
-                                            onclick="quickAddFromWishlist(${p.wishlist_id}, ${locationId}, '${p.common_name || p.scientific_name}')">
-                                        EINZIEHEN
-                                    </button>
-                                </div>
-                            </div>
-                        </div>`;
-                    });
-                }
-                html += '</div>';
-
-                document.getElementById('locationDetailContent').innerHTML = html;
-                new bootstrap.Modal(document.getElementById('locationDetailModal')).show();
-            } catch (e) { console.error(e); }
+        if (!Array.isArray(locs) || locs.length === 0) {
+            container.innerHTML = '<div class="col-12 text-muted">Keine Standorte vorhanden.</div>';
+            return;
         }
+
+        // Details fehlertolerant laden
+        const detailRes = await Promise.all(
+            locs.map(async l => {
+                try {
+                    const r = await fetch(`${API_URL}/locations/${l.id}/details`, { credentials: "include" });
+
+                    if (!r.ok) {
+                        console.error("Detail error:", await r.text());
+                        return {
+                            actual_plants: [],
+                            compatible_wishlist_plants: []
+                        };
+                    }
+
+                    return await r.json();
+                } catch (err) {
+                    console.error("Detail fetch crashed:", err);
+                    return {
+                        actual_plants: [],
+                        compatible_wishlist_plants: []
+                    };
+                }
+            })
+        );
+
+        locs.forEach((l, idx) => {
+            const data = detailRes[idx] || {
+                actual_plants: [],
+                compatible_wishlist_plants: []
+            };
+
+            const petsBadge = l.has_pets_or_children
+                ? '<span class="badge bg-warning text-dark">Haustiere/Kinder</span>'
+                : '';
+
+            container.innerHTML += `
+                <div class="col-md-4">
+                    <div class="plant-card h-100">
+                        <div class="p-3">
+                            <h5 class="text-center fw-bold">
+                                ${l.name} ${petsBadge}
+                            </h5>
+
+                            <div class="d-flex gap-2 flex-wrap mb-3">
+                                <span class="chip">
+                                    Vorhanden: ${data.actual_plants.length}
+                                </span>
+                                <span class="chip">
+                                    Wishlist passend: ${data.compatible_wishlist_plants.length}
+                                </span>
+                            </div>
+
+                            <div class="muted small">
+                                ☀️ Licht: ${l.light_level}/10 •
+                                💧 Feuchtigkeit: ${l.humidity_level}/10 <br>
+                                🌡️ Temperatur: ${l.temperature_avg}°C •
+                                📏 Platz: ${l.available_space_cm}cm
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <button class="btn btn-outline-light w-100"
+                                onclick="showLocationDetails(${l.id})">
+                                Details anzeigen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+    } catch (e) {
+        console.error("LoadLocations crashed:", e);
+    }
+}
+
+
+// ---------- STANDORT DETAILS ----------
+async function showLocationDetails(locationId) {
+    try {
+        const response = await fetch(`${API_URL}/locations/${locationId}/details`, {
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            console.error("Details error:", await response.text());
+            alert("Standortdetails konnten nicht geladen werden.");
+            return;
+        }
+
+        const data = await response.json();
+
+        document.getElementById('locationDetailTitle').textContent =
+            data.location?.name || "Standort";
+
+        let html = `
+            <h5 class="mb-3 text-white">Vorhandene Pflanzen</h5>
+            <div class="row g-3 mb-4">
+        `;
+
+        if (!data.actual_plants || data.actual_plants.length === 0) {
+            html += `
+                <div class="col-12 text-muted small italic">
+                    Keine Pflanzen an diesem Standort.
+                </div>
+            `;
+        } else {
+            data.actual_plants.forEach(p => {
+                html += `
+                    <div class="col-md-3">
+                        <div class="plant-card"
+                            style="background: rgba(255,255,255,0.03);
+                                   border: 1px solid #ffffff10;">
+                            <img src="${p.image || 'https://via.placeholder.com/150'}"
+                                 class="w-100"
+                                 style="height: 100px; object-fit: cover;
+                                        border-radius: 8px 8px 0 0;">
+                            <div class="p-2">
+                                <div class="fw-bold text-white small">
+                                    ${p.nickname}
+                                </div>
+                                <div class="muted extra-small">
+                                    ${p.species}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '</div>';
+
+        // Wunschliste
+        html += `
+            <h5 class="mb-3 text-white">
+                Passende Pflanzen aus deiner Wunschliste
+            </h5>
+            <div class="row g-3">
+        `;
+
+        if (!data.compatible_wishlist_plants ||
+            data.compatible_wishlist_plants.length === 0) {
+
+            html += `
+                <div class="col-12 alert alert-info bg-dark text-info border-info opacity-75">
+                    Keine passenden Pflanzen gefunden.
+                </div>
+            `;
+        } else {
+            data.compatible_wishlist_plants.forEach(p => {
+                html += `
+                    <div class="col-md-3">
+                        <div class="plant-card h-100"
+                            style="border-color: rgba(34,197,94,.4);
+                                   background: rgba(0,0,0,0.2);">
+                            <img src="${p.image || 'https://via.placeholder.com/150'}"
+                                 class="w-100"
+                                 style="height: 100px; object-fit: cover;
+                                        border-radius: 8px 8px 0 0;">
+                            <div class="p-2">
+                                <div class="fw-bold text-white small text-truncate">
+                                    ${p.common_name || p.scientific_name}
+                                </div>
+                                <div class="muted extra-small mb-2">
+                                    ${p.scientific_name}
+                                </div>
+
+                                <button class="btn btn-sm btn-success w-100 py-1 action-btn"
+                                    style="font-size: 0.7rem; letter-spacing: 0.5px;"
+                                    onclick="quickAddFromWishlist(${p.wishlist_id},
+                                        ${locationId},
+                                        '${(p.common_name || p.scientific_name).replace(/'/g, "\\'")}')">
+                                    EINZIEHEN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += '</div>';
+
+        document.getElementById('locationDetailContent').innerHTML = html;
+        new bootstrap.Modal(
+            document.getElementById('locationDetailModal')
+        ).show();
+
+    } catch (e) {
+        console.error("showLocationDetails crashed:", e);
+    }
+}
 
         async function quickAddFromWishlist(wishlistId, locationId, plantName) {
             if (!confirm(`${plantName} an diesen Standort verschieben?`)) return;
