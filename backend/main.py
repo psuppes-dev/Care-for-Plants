@@ -226,8 +226,16 @@ def add_to_wishlist(
     if exists:
         return {"status": "exists", "id": exists.id}
 
-    # 2) plant_info holen/erstellen (dein bisheriger Code bleibt)
-    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == payload.trefle_id,models.PlantInfo.owner_user_id == None).first()
+    # 2) plant_info holen/erstellen
+    db_info = (
+        db.query(models.PlantInfo)
+        .filter(
+            models.PlantInfo.trefle_id == payload.trefle_id,
+            models.PlantInfo.owner_user_id.is_(None)
+        )
+        .first()
+    )
+
     if not db_info:
         details = trefle_service.get_plant_details(payload.trefle_id)
         if not details:

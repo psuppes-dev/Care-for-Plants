@@ -81,7 +81,6 @@ class Wishlist(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     trefle_id = Column(Integer)
-    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     plant_info_id = Column(Integer, ForeignKey("plant_infos.id"))
     added_date = Column(Date)
     
