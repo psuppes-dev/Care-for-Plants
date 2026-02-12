@@ -227,7 +227,7 @@ def add_to_wishlist(
         return {"status": "exists", "id": exists.id}
 
     # 2) plant_info holen/erstellen (dein bisheriger Code bleibt)
-    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == payload.trefle_id).first()
+    db_info = db.query(models.PlantInfo).filter(models.PlantInfo.trefle_id == payload.trefle_id,models.PlantInfo.owner_user_id == None).first()
     if not db_info:
         details = trefle_service.get_plant_details(payload.trefle_id)
         if not details:
@@ -275,6 +275,8 @@ def get_wishlist(user_id: int = Depends(require_login),db: Session = Depends(get
     result = []
     for item in wishlist:
         plant = item.plant_info
+        if not plant:
+            continue
         
         # Kompatible Standorte finden (erweiterte Prüfung)
         suitable = []
@@ -453,8 +455,9 @@ def get_location_details(
     # Tatsächliche Pflanzen am Standort (nur dieses Users, extra-safe)
     actual_plants = []
     for plant in location.my_plants:
-        # Falls Relationship nicht gefiltert ist, sichern wir per user_id ab
         if getattr(plant, "user_id", user_id) != user_id:
+            continue
+        if not plant.plant_info:
             continue
 
         actual_plants.append({
@@ -470,6 +473,8 @@ def get_location_details(
 
     for item in wishlist:
         plant = item.plant_info
+        if not plant:
+            continue
         is_compatible = True
 
         # Licht-Check
